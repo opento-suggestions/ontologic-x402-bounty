@@ -1,0 +1,15 @@
+{
+  "name": "@witness/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WitnessVendingMachine — KEY custody + delivery leg (hardhat, Solidity 0.8.20)",
+  "scripts": {
+    "compile": "hardhat compile",
+    "deploy": "tsx scripts/deploy.ts"
+  },
+  "devDependencies": {
+    "hardhat": "^2.22.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

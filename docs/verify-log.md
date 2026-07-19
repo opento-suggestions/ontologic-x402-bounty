@@ -7,16 +7,35 @@ Dated findings for the spec's V-series items. Each entry names the design branch
 | V-1a | Does x402 conformance require a literal HTTP 402 roundtrip? | **CLOSED 2026-07-19: YES** | 402 gateway required (keyless resource side); facilitator required (fee-payer key) |
 | V-1b | Can settlement occur inside the resource contract call (exact scheme)? | **CLOSED 2026-07-19: NO** | facilitator-first: settled transfer = receipt; vend delivery = separate leg; W-1 Lane B asymmetric |
 | V-2 | HIP-991 fee-list semantics: conjunctive vs payer's choice | open (desk note only) | two-topic design adopted regardless |
-| V-3 | Auto-create by public-key alias: funding minimum, HIP-904 auto-association | open | — |
+| V-3 | Auto-create by public-key alias: funding minimum, HIP-904 auto-association | **CLOSED 2026-07-19: works** | lazy creation from contract value-transfer; newborn auto-associates wKEY |
 | V-4 | HashPack/WalletConnect: TopicMessageSubmit with max custom fee | open | — |
-| V-5 | Vending contract: in-call settle + mint + alias funding + revert behavior | open (needs .env) | — |
-| V-5b | Existing KEY 0.0.8644153 key audit | open | fresh witness-KEY pre-selected by steward; audit is informational |
-| V-7 | Mirror REST propagation latency on testnet | open (measured per smoke) | — |
-| V-9 | HIP-551 batch: can a newborn inner account pay/sign an inner tx? | open (needs .env) | — |
+| V-5 | Vending contract: mint + alias funding + burn + revert behavior | **CLOSED 2026-07-19: all proven** | delivery leg atomic; x402 settle stays outside (per V-1b) |
+| V-5b | Existing KEY 0.0.8644153 key audit | **CLOSED (moot)** | fresh witness-KEY `0.0.9645864` created by contract; 0.0.8644153 untouched |
+| V-7 | Mirror REST propagation latency on testnet | **CLOSED 2026-07-19: ~3s** | money shot fine; HashScan fallback unneeded |
+| V-9 | HIP-551 batch: can a newborn inner account pay/sign an inner tx? | **CLOSED 2026-07-19: NO (practical)** | two-step stands; W-1 Lane B asymmetric (already forced by V-1b) |
 
 ---
 
 ## Entries
+
+### 2026-07-19 — Lane A live; HIP-991 confirmed end-to-end
+
+Topics created with HIP-991 fixed fees at creation (fee schedule key retained = the re-peg lever): **WITNESS_HBAR `0.0.9645621`**, **WITNESS_KEY `0.0.9645622`** (Lane B fee provisional in HBAR until witness-KEY exists; re-peg to 1 KEY after token creation). No submit keys — the open door is deliberate (W-5/W-9). Note: revenue-generating topic creation is priced far above the SDK default max fee; scripts set an explicit 50-HBAR cap.
+
+First paid stamp (WHITE trace, light) landed and verified keyless in **~3.0s submit→mirror (V-7)**. Fee-collector self-exemption confirmed: a stamp paid by the collector shows `assessed_custom_fees: []`, while the newborn probe account `0.0.9645672`'s stamp shows the fee really flowing: `{amount: 1000000, collector: 0.0.8641261, effective_payer: 0.0.9645672}` — payment and stamp one atomic consensus event (W-1, Lane A). Demo must therefore stamp from a non-collector payer account (it will — the payer-agent is distinct).
+
+### 2026-07-19 — V-5 / V-9 / V-3 closed; Lane B delivery chain proven on-chain
+
+**V-5 — all mechanics proven** by deploy + live smoke (contract `0.0.9645863`):
+- Contract created its own token via the HTS system contract: **wKEY `0.0.9645864`**, treasury = contract, supply key = contract, **admin key = null (born immutable)**.
+- `vend(alias)` in ONE atomic call: value transfer to a non-existent EVM alias **lazy-created the newborn account** (V-3 — HIP-583 path; auto-association delivered the wKEY without any association tx), minted 1 wKEY, delivered it. Gas note: lazy creation is gas-heavy — 1.2M was OOG-adjacent, 3M is comfortable.
+- The newborn `0.0.9645912` then **signed its own Lane B stamp** (W-2 held: no ORG key near testimony), and the HIP-991 fee assessed as `{amount: 1, token: 0.0.9645864, collector: 0.0.9645863}` — **the fee flows to the treasury-in-code**.
+- `burnCollected(1)` executed; mirror shows `total_supply: 0`. **Mint-on-vend, burn-on-stamp, zero reserve — D-3 is structural and demonstrated.**
+- Revert behavior: a failing leg reverts the whole delivery (observed: the OOG attempt left no partial state — no account, no mint). The redeemable right survives re-execution.
+- Lane B re-peg via the retained fee schedule key worked, **with the contract as collector** (no collector signature demanded on the topic update).
+- Lane B mirror latency ~6.3s (V-7 range: 3–7s).
+
+**V-9 — NO (practical).** Attempt A (HIP-551 batch whose inner stamp is fee-paid by the alias-form account the batch itself creates) stalls in SDK retry — the transaction-ID-needs-a-real-payer problem is real at the SDK layer; no clean network acceptance was observed. Attempt B (two-step: transfer-to-alias auto-create via child receipt, then the newborn self-signs) is proven live. **Branch: two-step stands.** This costs nothing extra: V-1b already forced the payment leg outside any batch, so Lane B was already receipt + redeemable right. Final W-1 wording (LIMITATIONS.md): *no stamp without payment* unconditional on both lanes; on Lane B the settled x402 transfer is the receipt, and delivery (genesis + KEY) and the stamp are redeemable rights — a payer can transiently hold KEY without a stamp, but no funds strand and every right remains redeemable.
 
 ### 2026-07-19 — V-1 (desk study, official sources)
 

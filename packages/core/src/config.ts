@@ -7,8 +7,24 @@
  */
 
 import dotenv from "dotenv";
+import fs from "node:fs";
+import path from "node:path";
 
-dotenv.config();
+// One .env, one source of truth: the repo root's. Scripts run from nested
+// package dirs too, so walk upward from cwd to the first .env found.
+function findEnv(): string | undefined {
+  let dir = process.cwd();
+  for (let i = 0; i < 5; i++) {
+    const candidate = path.join(dir, ".env");
+    if (fs.existsSync(candidate)) return candidate;
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return undefined;
+}
+
+dotenv.config({ path: findEnv() });
 
 export interface OperatorConfig {
   id: string;
