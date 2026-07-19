@@ -18,3 +18,5 @@ Running collection of on-chain evidence (bounty checklist §10: real testnet tra
 | 2026-07-19 | Lane B vend: genesis + 1 wKEY delivered in one contract call (newborn 0.0.9645912) | `0.0.9645912` | https://hashscan.io/testnet/account/0.0.9645912 |
 | 2026-07-19 | Lane B stamp: newborn 0.0.9645912 self-signed WHITE trace (paint), 1 wKEY fee to treasury-in-code | `1784494947.096715104` | https://hashscan.io/testnet/transaction/0.0.9645912-1784494942-798350801 |
 | 2026-07-19 | Lane B burn: consumed wKEY exits supply (D-3) | `0.0.9645864` | https://hashscan.io/testnet/transaction/0.0.8641261-1784494947-780841474 |
+| 2026-07-19 | payer-agent account created (distinct from operator) | `0.0.9646033` | https://hashscan.io/testnet/account/0.0.9646033 |
+| 2026-07-19 | redeem: settled x402 receipt 0.0.9646033-1784495988-270588092 → vend(0xfa00a4b3d592139508828675ba73a718013acdc4) | `0xfa00a4b3d592139508828675ba73a718013acdc4` | https://hashscan.io/testnet/transaction/0.0.8641261-1784495994-871461914 |
