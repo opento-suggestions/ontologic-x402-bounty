@@ -1,0 +1,33 @@
+{
+  "name": "witness-required",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Witness Required — x402 pay-per-proof service on Hedera rails. HTTP 402 is Payment Required; Ontologic adds the missing sibling.",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/mcp",
+    "probe:vending": "tsx scripts/probe-vending.ts",
+    "probe:batch": "tsx scripts/probe-batch.ts",
+    "create-topics": "tsx scripts/create-topics.ts",
+    "peg": "tsx scripts/peg.ts",
+    "smoke:lane-a": "tsx scripts/lane-a-smoke.ts",
+    "smoke:lane-b": "tsx scripts/lane-b-smoke.ts",
+    "smoke:vend": "tsx scripts/vend-smoke.ts",
+    "reject-attest": "tsx scripts/reject-attest.ts"
+  },
+  "dependencies": {
+    "@hashgraph/sdk": "^2.72.0",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.13.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.5"
+  }
+}

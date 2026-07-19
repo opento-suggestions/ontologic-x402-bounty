@@ -1,0 +1,38 @@
+# Verify-at-build log (V-series)
+
+Dated findings for the spec's V-series items. Each entry names the design branch the answer selects. Nothing in Phases 3–6 is coded against an unanswered falsifier (V-1, V-5, V-9).
+
+| Item | Question | Status | Branch selected |
+|------|----------|--------|-----------------|
+| V-1a | Does x402 conformance require a literal HTTP 402 roundtrip? | **CLOSED 2026-07-19: YES** | 402 gateway required (keyless resource side); facilitator required (fee-payer key) |
+| V-1b | Can settlement occur inside the resource contract call (exact scheme)? | **CLOSED 2026-07-19: NO** | facilitator-first: settled transfer = receipt; vend delivery = separate leg; W-1 Lane B asymmetric |
+| V-2 | HIP-991 fee-list semantics: conjunctive vs payer's choice | open (desk note only) | two-topic design adopted regardless |
+| V-3 | Auto-create by public-key alias: funding minimum, HIP-904 auto-association | open | — |
+| V-4 | HashPack/WalletConnect: TopicMessageSubmit with max custom fee | open | — |
+| V-5 | Vending contract: in-call settle + mint + alias funding + revert behavior | open (needs .env) | — |
+| V-5b | Existing KEY 0.0.8644153 key audit | open | fresh witness-KEY pre-selected by steward; audit is informational |
+| V-7 | Mirror REST propagation latency on testnet | open (measured per smoke) | — |
+| V-9 | HIP-551 batch: can a newborn inner account pay/sign an inner tx? | open (needs .env) | — |
+
+---
+
+## Entries
+
+### 2026-07-19 — V-1 (desk study, official sources)
+
+**Sources:** x402 spec repo (`x402-foundation/x402`, formerly `coinbase/x402`) — `specs/schemes/exact/scheme_exact_hedera.md`; official Hedera template `hedera-dev/scaffold-hbar@templates/x402-pay-per-use`; reference example `matevszm/x402-hedera-example`; hedera.com x402 blog.
+
+**V-1a — YES, literal HTTP 402.** The conformance surface is the HTTP flow: server returns `402` with a payment challenge header; client retries with the signed-payment header; settlement receipt returns in a `PAYMENT-RESPONSE` header. The official template implements exactly this. **Branch:** the thin 402 gateway ships. The resource-server side stays keyless (precedent: the reference example — "the server holds no Hedera key"), preserving W-2's keyless-gateway posture.
+
+**Hedera exact scheme (spec):** `network` is CAIP-2 — **`hedera:testnet`**. `asset` is an entity ID: `"0.0.0"` for HBAR or an HTS token ID. Amounts in tinybar / token smallest unit. `extra.feePayer` names the fee-sponsoring account. The PaymentPayload carries a Base64 **partially signed native `TransferTransaction`** — client signs the debit; the **facilitator co-signs as fee payer and submits**. Spec: the decompiled transaction "MUST be a `TransferTransaction` directly. It MUST NOT be wrapped in a `ScheduleCreateTransaction` or any other transaction type."
+
+**V-1b — NO in-call settlement.** Per the scheme, x402 settlement on Hedera is a plain native transfer — contract calls are explicitly excluded ("Hedera x402 payments are native transfers, not EVM contract calls" — official template README). Revert-protects-payer semantics therefore CANNOT couple payment to KEY delivery in one transaction. **Branch (the spec's anticipated "genuine design work" case):**
+- x402 leg: payer's partially signed `TransferTransaction` (USDC `0.0.429274` or HBAR) → `payTo` = ORG treasury; facilitator co-signs + submits; mirror-visible settlement is the receipt.
+- Delivery leg: vend execution (mint KEY → deliver to payer/alias → fund alias) is a separate transaction after settlement verification. The **settled transfer is the payment receipt; KEY delivery and the stamp are redeemable rights** — no funds strand, and failure of the delivery leg cannot un-settle the payment. W-1's Lane B wording is asymmetric one level earlier than V-9 anticipated; V-9 still governs whether delivery+stamp can fuse into one HIP-551 batch.
+- Refund posture: delivery-leg failure → re-execution (redeem) rather than refund; operator-refund of the settled transfer is the backstop. Disclosed in LIMITATIONS.md.
+
+**Facilitator:** the official template ships a **self-hosted facilitator** (Docker, `facilitator/`, `FACILITATOR_ACCOUNT_ID`/`FACILITATOR_PRIVATE_KEY`, "never custodies buyer funds — only co-signs pre-approved transfers"). ORG runs this for the demo with a dedicated fee-payer account. **W-2 note:** the facilitator key co-signs the payer's *payment transfer* as fee sponsor only — it never signs payer *testimony* (stamps remain payer-signed). Add to LIMITATIONS.md.
+
+**Assets:** testnet USDC confirmed live on mirror: **`0.0.429274`** ("USDC HBAR", 6 decimals; Circle-held admin/freeze keys). HBAR exact-scheme = `asset: "0.0.0"`.
+
+**Consequence for the spec's Lane B premise:** under the real scheme, the x402 payer must sign a debit from an existing funded account — a truly account-less agent cannot pay on Hedera rails directly. Lane B's "genesis" product stands: the *testimony account* (newborn key, auto-created alias) is what the vend delivers; the payment debit comes from the agent's funding source (demo: a funded payer account). To be stated plainly in LIMITATIONS.md rather than implied.

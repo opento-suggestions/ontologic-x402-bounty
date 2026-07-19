@@ -1,0 +1,14 @@
+# Env variables — holds a funded testnet private key. NEVER commit.
+.env
+
+# Node / TypeScript
+node_modules/
+dist/
+*.tsbuildinfo
+*.log
+.DS_Store
+
+# Hardhat
+packages/contracts/artifacts/
+packages/contracts/cache/
+packages/contracts/typechain-types/

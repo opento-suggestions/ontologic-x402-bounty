@@ -1,0 +1,22 @@
+{
+  "name": "@witness/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Witness Required — the seam: canonical hashing, claim builders, mirror client, keyless verifier. Zero Hedera SDK.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ethers": "^6.13.4",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.5"
+  }
+}
