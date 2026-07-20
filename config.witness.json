@@ -1,0 +1,76 @@
+{
+  "network": "hedera-testnet",
+  "laneATopicId": "0.0.9645621",
+  "laneBTopicId": "0.0.9645622",
+  "keyTokenId": "0.0.9645864",
+  "vendingContractId": "0.0.9645863",
+  "treasuryAccountId": "0.0.8641261",
+  "peg": {
+    "hbarUsd": 0.1,
+    "laneA": {
+      "marginUsd": 0.001,
+      "feeHbar": 0.01,
+      "feeTinybar": 1000000
+    },
+    "laneB": {
+      "feeKey": 1
+    },
+    "vending": {
+      "priceUsd": 0.01,
+      "priceUsdcSmallest": 10000,
+      "usdcTokenId": "0.0.429274"
+    }
+  },
+  "requirements": {
+    "generatedBy": "scripts/peg.ts — the single price authority; do not hand-edit",
+    "peg": {
+      "hbarUsd": 0.1,
+      "semantics": "manual fixed peg, testnet demo (see LIMITATIONS.md)"
+    },
+    "lanes": {
+      "laneA": {
+        "name": "WITNESS_HBAR — native, discounted",
+        "topicId": "0.0.9645621",
+        "fee": {
+          "amount": "1000000",
+          "asset": "0.0.0",
+          "denomination": "tinybar"
+        },
+        "feeUsdNotional": 0.001,
+        "note": "HIP-991 fixed fee charged atomically as the stamp records. At-cost network fee is paid separately to the network; this fee is ORG's published minimum margin (W-5)."
+      },
+      "laneB": {
+        "name": "WITNESS_KEY — premium, genesis + witness",
+        "topicId": "0.0.9645622",
+        "fee": {
+          "amount": "1",
+          "asset": "0.0.9645864",
+          "denomination": "KEY"
+        },
+        "note": "1 KEY = 1 stamp, burned on execution (W-4/D-3). The premium lives in the vending price, never here."
+      }
+    },
+    "vending": {
+      "accepts": [
+        {
+          "scheme": "exact",
+          "network": "hedera:testnet",
+          "amount": "10000",
+          "asset": "0.0.429274",
+          "payTo": "0.0.8641261",
+          "maxTimeoutSeconds": 180,
+          "description": "Vend 1 KEY + testimony-account genesis (Witness Required, Lane B)"
+        },
+        {
+          "scheme": "exact",
+          "network": "hedera:testnet",
+          "amount": "10000000",
+          "asset": "0.0.0",
+          "payTo": "0.0.8641261",
+          "maxTimeoutSeconds": 180,
+          "description": "Vend 1 KEY + testimony-account genesis (HBAR at the pegged rate)"
+        }
+      ]
+    }
+  }
+}

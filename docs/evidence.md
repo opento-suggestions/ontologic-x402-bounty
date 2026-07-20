@@ -20,3 +20,4 @@ Running collection of on-chain evidence (bounty checklist §10: real testnet tra
 | 2026-07-19 | Lane B burn: consumed wKEY exits supply (D-3) | `0.0.9645864` | https://hashscan.io/testnet/transaction/0.0.8641261-1784494947-780841474 |
 | 2026-07-19 | payer-agent account created (distinct from operator) | `0.0.9646033` | https://hashscan.io/testnet/account/0.0.9646033 |
 | 2026-07-19 | redeem: settled x402 receipt 0.0.9646033-1784495988-270588092 → vend(0xfa00a4b3d592139508828675ba73a718013acdc4) | `0xfa00a4b3d592139508828675ba73a718013acdc4` | https://hashscan.io/testnet/transaction/0.0.8641261-1784495994-871461914 |
+| 2026-07-20 | rejection attestation (operator-summoned) for 0.0.9645621 seq 2: unknown schema: undefined | `1784518459.756961931` | https://hashscan.io/testnet/transaction/0.0.8641261-1784518454-120831562 |
