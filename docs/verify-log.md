@@ -13,7 +13,6 @@ Dated findings for the spec's V-series items. Each entry names the design branch
 | V-5b | Existing KEY 0.0.8644153 key audit | **CLOSED (moot)** | fresh witness-KEY `0.0.9645864` created by contract; 0.0.8644153 untouched |
 | V-7 | Mirror REST propagation latency on testnet | **CLOSED 2026-07-19: ~3s** | money shot fine; HashScan fallback unneeded |
 | V-9 | HIP-551 batch: can a newborn inner account pay/sign an inner tx? | **CLOSED 2026-07-19: NO (practical)** | two-step stands; W-1 Lane B asymmetric (already forced by V-1b) |
-
 | V-10 | Can mirror REST attribute a topic message to a signing key (signer set / historical key state)? | **CLOSED 2026-07-24: NO** | transport attribution cannot carry authority → immutable submit-keyed topics + read-time mandate window (Phase 2) |
 | V-11 | Can an HCS topic's admin key be cleared after creation? | **CLOSED 2026-07-24: NO** | rotate-only; immutability must be chosen at creation → authority topics born without admin keys (Phase 2 §3) |
 
@@ -21,13 +20,45 @@ Dated findings for the spec's V-series items. Each entry names the design branch
 
 ## Entries
 
-### 2026-07-24 — V-10 / V-11 (Phase 2 falsifiers) and the §4.1 reasons finding
+### 2026-07-24 — V-10 / V-11 (Phase 2 falsifiers) — primary records
 
-**V-10 — mirror-level attribution (compressed summary; primary record below).** Mirror REST exposes `payer_account_id` on a topic message but **no signer set and no historical account key state**, and `transaction_bytes` availability varies by mirror implementation. A verdict judged later would be checked against whatever key the account holds *at query time* — a temporal defect. Consequence: transport-level attribution cannot carry authority; identity must be enforced at write time by the network (immutable submit keys) and authority judged at read time against a content-resident mandate window.
+### V-10 — Can a keyless verifier bind a topic message to an ORG account from mirror REST alone?
 
-> **Primary record:** *[pending — the Hedera agent's raw answer to be inserted verbatim here so this summary can be checked against it, per steward instruction 2026-07-24.]*
+**Answered 2026-07-24 · NO**
 
-**V-11 — topic admin keys are rotate-only.** HIP-540's key-removal semantics apply to tokens, not topics; a topic admin key can be rotated but never cleared. Immutability is a creation-time decision only. Consequence: the Phase 2 authority topics (Witness Rule Registry, Verdict Topic) must be created with **no admin key**, as a one-shot ceremony with read-back assertion of `admin_key: null` (PHASE_2 §3.4).
+**Question.** W-11 requires the verifier to establish that a verdict was rendered by the mandated grantee. Can a client with no private keys, reading only public mirror REST, bind a topic message to a specific ORG account and its key structure?
+
+**Finding — what mirror exposes.** On `/api/v1/topics/{id}/messages`: `payer_account_id`, `consensus_timestamp`, `sequence_number`, `message` (base64), `running_hash`, `running_hash_version`, and chunk fields. From the message alone you cannot see the transaction's signature map, its public keys, or the account's key structure at submission time.
+
+**Finding — how far you can go.** Following the transaction back via `/api/v1/transactions?timestamp=...` may expose `transaction_bytes` (base64 protobuf) **depending on mirror implementation and version**. Decoding that locally yields `sig_map.sig_pair[].pub_key_prefix` and the signatures, which can be prefix-matched against `/api/v1/accounts/{id}`'s `key` field.
+
+**Finding — the three defects.** (1) Mirrors do not re-expose a decoded `SignatureMap` or a resolved signer set as a REST field; the client must decode protobuf itself. (2) `/accounts/{id}` returns the account's **current** key, not its historical key state — so a verdict judged weeks later would be checked against whatever key the account holds *at query time*, and a key rotation silently rewrites history. (3) `transaction_bytes` availability is not portable across mirror implementations.
+
+**Consequence.** `payer_account_id` alone is a reference to who paid for a transaction, not a cryptographic binding. Transport-level attribution cannot carry authority. This falsified the in-payload-signature-optional branch and forced attribution into either message content or network-enforced write access — see V-11.
+
+**Cross-reference.** W-6's reproducibility clause ("any observer reproduces the wall from the topics alone") independently forbids a verdict that depends on `/accounts` or `/transactions`, since those answers can differ between two honest readers at different times. Promoted to **W-12 (anchor sufficiency)** in PHASE_2 §2.
+
+---
+
+### V-11 — Can an HCS topic's admin key be cleared after creation?
+
+**Answered 2026-07-24 · NO**
+
+**Question.** Topic-membership attribution is only trustworthy if the submit key cannot be rotated. Can a topic be made permanently immutable after the fact?
+
+**Finding.** `ConsensusTopicUpdateTransaction` permits changing the admin key to a different key, or leaving it unchanged by not setting it. There is **no supported operation** to set the admin key to null or otherwise remove it after creation. HIP-540's key-removal behavior applies to tokens; topics do not mirror that capability.
+
+**Consequence.** Immutability must be chosen at creation: a topic created **without** an admin key can never be updated or deleted, and its submit key is therefore permanent. A topic created **with** an admin key can never become immutable — the admin key can only be rotated, never removed.
+
+This makes the authority topics a one-shot ceremony. It also makes their key state the one piece of topic configuration that is temporally stable and self-certifying: a reader sees `admin_key: null` on `/topics/{id}` and knows no operation exists that could change it.
+
+**Accepted cost (MVP, declared in LIMITATIONS.md).** A permanent submit key is unrotatable and unrecoverable. Loss means no further writes on that topic, ever; compromise means the attacker retains write access indefinitely, though every write after revocation is machine-detectably out-of-mandate. Recovery is abandon-and-re-anchor, which is the same ceremony a pinned-key rotation would have required, since the anchor was always off-chain.
+
+**Related fork.** Exact attribution and rotatability are mutually exclusive here: a KeyList submit key would allow operator rotation without touching the topic, but V-10 means mirror cannot reveal *which* listed key signed — attribution would degrade from "the operator wrote this" to "one of N wrote this." Single-key was chosen for the MVP.
+
+---
+
+### 2026-07-24 — the §4.1 reasons finding
 
 **§4.1 finding — `reasons` is currently a payload carrier (W-10 violated in the verdict path).** Confirmed against the code and the live record, 2026-07-24:
 - `packages/core/src/verify.ts` constructs reasons by string interpolation of subject-message fields — the schema-dispatch branch pushes `` `unknown schema: ${String(payload.schema)}` ``.
