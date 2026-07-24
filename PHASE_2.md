@@ -92,7 +92,10 @@ Order here is causal, not scheduling: each step's output is the next step's requ
 ### 3.5 Genesis writes to the registry
 
 1. **RuleDef: conformance rule** (`R` for rejection attestations). See §6.1 — the content is authoring work and must exist before anything downstream builds.
-2. **RuleDef: delegation rule** (`R` for mandate-morphemes).
+2. **RuleDef: delegation rule** (`R` for mandate-morphemes). Its content is steward-authored (see §6.1a), but it MUST carry these constraints, recovered from Addendum A:
+   - The grantee never signs payer testimony (restates W-2).
+   - The grantee never renders success verdicts — **the stamp is the verdict**. This clause is load-bearing: success needing no verdict is what keeps D-6's lazy-attestation economics closed. A delegation rule without it silently reopens the drain vector.
+   - The mandate chain is **depth-1**: ORG root (self-grounding, no `mandateHash`) → operator. Recursive delegation is reserved to Coprocessor I-9 and the D-7 roadmap. A mandate whose principal is not the root is out of scope for this build's verifier.
 3. **The first mandate-morpheme**, root-submitted, granting `verdict:rejection-attestation` to `OPERATOR_ID`, scoped to `WITNESS_VERDICT_TOPIC`, with explicit `notBefore` / `notAfter`.
 
 The first message on the registry topic is the grant every later verdict resolves against. Whatever `R` says on day one is what the chain grounds in.
@@ -174,6 +177,10 @@ Four of these are cheap. **§6.1 is not, and nothing downstream can be built wit
 ### 6.1 The conformance rule's content — BLOCKING
 
 The rejection attestation's `R` must resolve to a real RuleDef with real content. Right now, "what makes a lane message conformant" exists only implicitly, as `judgeMessage`'s check order. That check order has to become an explicit, published, self-hashing RuleDef: rule id, version, domain, the conformance predicates in order, and the reason code each failure emits. **This is authoring work, not coding work.** Until it exists, the attestation has nothing to point at, and the first message on an immutable topic is not a good place to improvise.
+
+### 6.1a The delegation rule's content — BLOCKING, same class as §6.1
+
+The delegation rule has the same problem as the conformance rule: it must exist as a real, self-hashing RuleDef before the ceremony, and its content is steward-authored. §3.5 lists its required constraints; the rest — rule id, version, domain, the grant-validity predicates — does not yet exist. **Two rules block the ceremony, not one.**
 
 ### 6.2 Out-of-mandate verdict class — undecided
 
