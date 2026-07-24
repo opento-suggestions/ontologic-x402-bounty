@@ -19,6 +19,7 @@ import { CustomFeeLimit, CustomFixedFee, Hbar, TokenId, TopicMessageSubmitTransa
 import { canonicalizeJSON } from "../packages/core/src/morpheme.js";
 import { getNetworkConfig, getWitnessConfig } from "../packages/core/src/config.js";
 import { judgeMessage } from "../packages/core/src/verify.js";
+import { reasonText } from "../packages/core/src/reasons.js";
 import { buildRejectionAttestation } from "../packages/core/src/schema.js";
 import type { MirrorMessage } from "../packages/core/src/mirror.js";
 import { appendEvidence, hashscanTx, openOperatorClient } from "./lib/ops.js";
@@ -50,7 +51,9 @@ async function main() {
     client.close();
     return;
   }
-  console.log(`Attempt at seq ${seqArg} judged invalid: ${verdict.reasons.join("; ")}`);
+  // Codes are the wire format; the display text is a local lookup (W-10).
+  const display = verdict.reasons.map((c) => `${c} (${reasonText(c)})`).join("; ");
+  console.log(`Attempt at seq ${seqArg} judged invalid: ${display}`);
 
   // 2. Build the bounded fail-write — derivations only, never the payload.
   const attestation = buildRejectionAttestation({
@@ -84,7 +87,7 @@ async function main() {
     `rejection attestation (operator-summoned) for ${topicId} seq ${seqArg}: ${verdict.reasons.join("; ")}`,
     consensus,
     link,
-  );
+  ); // evidence carries the codes — same wire format as the attestation itself
   console.log("The wall now renders the ATTESTATION — the attempt itself still gets no tile (W-10).");
   client.close();
 }

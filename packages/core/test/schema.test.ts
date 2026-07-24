@@ -69,7 +69,7 @@ describe("rejection attestation (the bounded fail-write)", () => {
       subjectConsensusTimestamp: "1776142805.000000000",
       subjectSequenceNumber: 7,
       subjectMessageHash: "0x" + "ab".repeat(32),
-      reasons: ["not JSON"],
+      reasons: ["parse.invalid-json"],
       operatorAccountId: "0.0.1234",
       createdAt: "2026-07-19T00:00:00.000Z",
     });

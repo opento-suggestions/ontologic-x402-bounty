@@ -16,6 +16,7 @@
 
 import { keccak256, toUtf8Bytes } from "ethers";
 import { computeBindingHash, computeRuleUriHash } from "./morpheme.js";
+import { type ReasonCode } from "./reasons.js";
 import { resolveRuleDef, type ResolveOptions } from "./resolve.js";
 import {
   MORPHEME_PROOF_SCHEMA,
@@ -38,7 +39,12 @@ export interface Verdict {
   payerAccountId: string | null;
   /** keccak256 of the raw message bytes — the only derivation invalid messages get. */
   messageHash: string;
-  reasons: string[];
+  /**
+   * Codes from the closed reason space (reasons.ts) — the wire format.
+   * Never free text, never subject-message content (W-10, verdict path).
+   * Display strings come from a renderer-side reasonText lookup.
+   */
+  reasons: ReasonCode[];
   proof?: MorphemeProof;
   statusProfile?: StatusProfile;
   rejection?: RejectionAttestation;
@@ -67,7 +73,7 @@ export async function judgeMessage(
   try {
     payload = JSON.parse(raw) as Record<string, unknown>;
   } catch {
-    base.reasons.push("not JSON");
+    base.reasons.push("parse.invalid-json");
     return base;
   }
 
@@ -87,24 +93,28 @@ export async function judgeMessage(
     proof = payload as unknown as MorphemeProof;
     base.statusProfile = readStatusProfile(undefined); // absent envelope → missing
   } else {
-    base.reasons.push(`unknown schema: ${String(payload.schema)}`);
+    // Absent vs unrecognized are distinguishable conditions; neither reason
+    // may carry the declared value (that was the live W-10 hole).
+    base.reasons.push(payload.schema === undefined ? "schema.missing" : "schema.unknown");
     return base;
   }
 
   // Structural checks.
+  // One code regardless of which field failed — codes stay closed; a pointer
+  // to the specific field would be an offset question for a later phase.
   for (const field of ["ruleId", "ruleUri", "ruleUriHash", "inputsHash", "outputsHash", "bindingHash"] as const) {
     if (typeof proof[field] !== "string" || proof[field].length === 0) {
-      base.reasons.push(`missing field: ${field}`);
+      base.reasons.push("structure.missing-field");
+      return base;
     }
   }
-  if (base.reasons.length > 0) return base;
 
   for (const field of ["ruleUriHash", "inputsHash", "outputsHash", "bindingHash"] as const) {
     if (!HASH_RE.test(proof[field])) {
-      base.reasons.push(`malformed hash: ${field}`);
+      base.reasons.push("hash.malformed");
+      return base;
     }
   }
-  if (base.reasons.length > 0) return base;
 
   // Peirce: the binding recomputes from its parts.
   const recomputedBinding = computeBindingHash({
@@ -113,14 +123,14 @@ export async function judgeMessage(
     outputsHash: proof.outputsHash,
   });
   if (recomputedBinding.toLowerCase() !== proof.bindingHash.toLowerCase()) {
-    base.reasons.push("bindingHash does not recompute from {ruleUri, inputsHash, outputsHash}");
+    base.reasons.push("peirce.binding-mismatch");
     return base;
   }
 
   // The sha256/keccak split holds.
   const recomputedRuleUriHash = computeRuleUriHash(proof.ruleUri);
   if (recomputedRuleUriHash.toLowerCase() !== proof.ruleUriHash.toLowerCase()) {
-    base.reasons.push("ruleUriHash does not recompute (sha256 of ruleUri)");
+    base.reasons.push("split.rule-uri-hash-mismatch");
     return base;
   }
 
@@ -130,8 +140,10 @@ export async function judgeMessage(
   if (!options.skipRuleResolution) {
     try {
       await resolveRuleDef(proof.ruleUri, options);
-    } catch (e) {
-      base.reasons.push(`ruleUri does not dereference: ${(e as Error).message}`);
+    } catch {
+      // The resolver's error text embeds the subject's ruleUri — it must not
+      // reach reasons (W-10). The code alone is the verdict's explanation.
+      base.reasons.push("floridi.rule-unresolvable");
       return base;
     }
   }

@@ -11,6 +11,8 @@
  *     payment provenance (denominated testimony), free, with zero extra fields.
  */
 
+import { assertReasonCodes, type ReasonCode } from "./reasons.js";
+
 export const MORPHEME_PROOF_SCHEMA = "hcs.ontologic.morphemeProof";
 export const MORPHEME_PROOF_VERSION = "0.8";
 export const WITNESS_STAMP_SCHEMA = "hcs.ontologic.witness.stamp";
@@ -112,7 +114,8 @@ export interface RejectionAttestation {
   /** keccak256 of the attempt's raw message bytes — a derivation, not the bytes. */
   subjectMessageHash: string;
   verdict: "rejected";
-  reasons: string[];
+  /** Wire-format codes from the closed reason space — never free text (W-10). */
+  reasons: ReasonCode[];
   operatorAccountId: string;
   createdAt: string;
 }
@@ -122,13 +125,16 @@ export function buildRejectionAttestation(params: {
   subjectConsensusTimestamp: string;
   subjectSequenceNumber: number;
   subjectMessageHash: string;
-  reasons: string[];
+  reasons: ReasonCode[];
   operatorAccountId: string;
   createdAt: string;
 }): RejectionAttestation {
   if (params.reasons.length === 0) {
     throw new Error("A rejection attestation must state at least one reason.");
   }
+  // The claims.ts refusal: anything outside the closed reason space fails at
+  // construction, including strings smuggled past the type by a JS caller.
+  assertReasonCodes(params.reasons);
   return {
     schema: REJECTION_SCHEMA,
     schemaVersion: REJECTION_VERSION,

@@ -45,7 +45,9 @@ The Hedera x402 exact scheme's full wire flow has the payer partially sign the p
 
 ## The reasons field shipped before it was closed
 
-Rejection attestations carry a free-text `reasons` array, and the verifier currently constructs those strings by interpolating subject-message fields (the live attestation's `"unknown schema: undefined"` is this mechanism showing through). That means `reasons` is, today, a potential payload carrier: a crafted subject message could place attacker-chosen text into an ORG-signed attestation and onto the wall — a W-10 hole in the *verdict* path (the subject fields themselves remain derivations only). Recorded in `docs/verify-log.md` (2026-07-24); the fix is a closed reason-code enum (codes on the wire, display templates in the renderer), scheduled as Phase 2 work.
+Rejection attestations originally carried a free-text `reasons` array whose strings interpolated subject-message fields — a W-10 hole in the *verdict* path (the subject fields themselves were always derivations only): a crafted subject message could have placed attacker-chosen text into an ORG-signed attestation and onto the wall. **Closed 2026-07-24 (Phase 2a):** `reasons` is now a closed `ReasonCode` enum (`packages/core/src/reasons.ts`) — codes are the wire format, display templates live in a renderer-side lookup, and anything outside the space fails at construction. No reason interpolates subject content; a reason that must point at something points with a hash or an offset, never a value.
+
+What cannot be closed retroactively: the one attestation stamped before the fix (Lane A `0.0.9645621` seq 7) carries the interpolated string `"unknown schema: undefined"` immutably, and stands as history. Its benign form (`String(undefined)` from an absent field) is the mechanism showing through; the full record is in `docs/verify-log.md` (2026-07-24). The wall's display lookup for the new codes is cross-repo work (`ontologic-dev`); until it lands, codes render as codes — inert fixed strings, not payloads.
 
 ## The x402 payer needs a funded account
 
