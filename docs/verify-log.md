@@ -68,6 +68,17 @@ This makes the authority topics a one-shot ceremony. It also makes their key sta
 
 The type-level W-10 defense ("no field that could carry the attempt's payload") holds for the *subject fields* (hash/topic/timestamp/seq — derivations only) but NOT for `reasons`. The mechanism shipped before the reason space was closed; disclosed in LIMITATIONS.md. Fix is PHASE_2 §4.1's closed `ReasonCode` enum — codes on the wire, display templates in the renderer, pointers by hash or offset, never by value.
 
+**Addendum, 2026-07-24 (Phase 2a) — primary record of the live attestation, read from public mirror REST (keyless; no transaction signed):**
+
+- Attestation: Lane A `0.0.9645621` **seq 7**, consensus `1784518459.756961931`, payer `0.0.8641261` (operator). Full message body, verbatim:
+
+  ```json
+  {"createdAt":"2026-07-20T03:34:19.691Z","operatorAccountId":"0.0.8641261","reasons":["unknown schema: undefined"],"schema":"hcs.ontologic.witness.rejection","schemaVersion":"0.1","subjectConsensusTimestamp":"1784493351.903971104","subjectMessageHash":"0x784712708a8b6930b2a311d48ee4b8ff4953a6413ad6052366a613d37bdee6ae","subjectSequenceNumber":2,"subjectTopicId":"0.0.9645621","verdict":"rejected"}
+  ```
+
+- Subject: Lane A seq 2, consensus `1784493351.903971104` — the V-9 probe stamp, whose payload has **no `schema` field at all**. The live `"unknown schema: undefined"` is therefore `String(undefined)` from an absent field, exactly as predicted from `verify.ts`'s schema-dispatch branch. The interpolation finding above is confirmed against the live record, not just the code.
+- **Second interpolation site**, missed by the original entry: `verify.ts`'s Floridi branch pushes `` `ruleUri does not dereference: ${(e as Error).message}` ``, and the resolver's error text embeds subject content — `resolve.ts` throws `` `Invalid ruleUri format: ${ruleUri}. Expected: hcs://<topicId>/<timestamp>` `` (and similar). `ruleUri` is an attacker-chosen field: a message that passes the Peirce and split checks over its own crafted `ruleUri` (both hashes are computable by the author) reaches this branch and lands its `ruleUri` text in `reasons`. Both sites close together under the `ReasonCode` enum: `floridi.rule-unresolvable` carries no error text.
+
 ### 2026-07-19 — Lane A live; HIP-991 confirmed end-to-end
 
 Topics created with HIP-991 fixed fees at creation (fee schedule key retained = the re-peg lever): **WITNESS_HBAR `0.0.9645621`**, **WITNESS_KEY `0.0.9645622`** (Lane B fee provisional in HBAR until witness-KEY exists; re-peg to 1 KEY after token creation). No submit keys — the open door is deliberate (W-5/W-9). Note: revenue-generating topic creation is priced far above the SDK default max fee; scripts set an explicit 50-HBAR cap.
