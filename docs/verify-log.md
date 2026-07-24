@@ -14,9 +14,28 @@ Dated findings for the spec's V-series items. Each entry names the design branch
 | V-7 | Mirror REST propagation latency on testnet | **CLOSED 2026-07-19: ~3s** | money shot fine; HashScan fallback unneeded |
 | V-9 | HIP-551 batch: can a newborn inner account pay/sign an inner tx? | **CLOSED 2026-07-19: NO (practical)** | two-step stands; W-1 Lane B asymmetric (already forced by V-1b) |
 
+| V-10 | Can mirror REST attribute a topic message to a signing key (signer set / historical key state)? | **CLOSED 2026-07-24: NO** | transport attribution cannot carry authority → immutable submit-keyed topics + read-time mandate window (Phase 2) |
+| V-11 | Can an HCS topic's admin key be cleared after creation? | **CLOSED 2026-07-24: NO** | rotate-only; immutability must be chosen at creation → authority topics born without admin keys (Phase 2 §3) |
+
 ---
 
 ## Entries
+
+### 2026-07-24 — V-10 / V-11 (Phase 2 falsifiers) and the §4.1 reasons finding
+
+**V-10 — mirror-level attribution (compressed summary; primary record below).** Mirror REST exposes `payer_account_id` on a topic message but **no signer set and no historical account key state**, and `transaction_bytes` availability varies by mirror implementation. A verdict judged later would be checked against whatever key the account holds *at query time* — a temporal defect. Consequence: transport-level attribution cannot carry authority; identity must be enforced at write time by the network (immutable submit keys) and authority judged at read time against a content-resident mandate window.
+
+> **Primary record:** *[pending — the Hedera agent's raw answer to be inserted verbatim here so this summary can be checked against it, per steward instruction 2026-07-24.]*
+
+**V-11 — topic admin keys are rotate-only.** HIP-540's key-removal semantics apply to tokens, not topics; a topic admin key can be rotated but never cleared. Immutability is a creation-time decision only. Consequence: the Phase 2 authority topics (Witness Rule Registry, Verdict Topic) must be created with **no admin key**, as a one-shot ceremony with read-back assertion of `admin_key: null` (PHASE_2 §3.4).
+
+**§4.1 finding — `reasons` is currently a payload carrier (W-10 violated in the verdict path).** Confirmed against the code and the live record, 2026-07-24:
+- `packages/core/src/verify.ts` constructs reasons by string interpolation of subject-message fields — the schema-dispatch branch pushes `` `unknown schema: ${String(payload.schema)}` ``.
+- `scripts/reject-attest.ts` stamps `verdict.reasons` on-chain inside the rejection attestation.
+- The wall's `wall.js` renders `rejection.reasons` as verdict-tile text on an ORG surface.
+- The live Lane A attestation (subject seq 2) carries `reasons: ["unknown schema: undefined"]` — `String(undefined)` from an absent field, which is the benign form of the hole. A subject message carrying `{"schema": "<attacker text>"}` would place that text, verbatim, into an ORG-signed on-chain attestation and onto the wall.
+
+The type-level W-10 defense ("no field that could carry the attempt's payload") holds for the *subject fields* (hash/topic/timestamp/seq — derivations only) but NOT for `reasons`. The mechanism shipped before the reason space was closed; disclosed in LIMITATIONS.md. Fix is PHASE_2 §4.1's closed `ReasonCode` enum — codes on the wire, display templates in the renderer, pointers by hash or offset, never by value.
 
 ### 2026-07-19 — Lane A live; HIP-991 confirmed end-to-end
 

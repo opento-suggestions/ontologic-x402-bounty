@@ -39,9 +39,13 @@ The vending KEY is a fresh token whose supply key is held by the vending contrac
 
 *No stamp without payment* holds unconditionally on both lanes: HIP-991 charges the fee in the same consensus event as the stamp. The converse — *no payment without stamp* — holds on Lane A by construction. On Lane B the x402 exact scheme settles the payment as a plain native transfer **outside** any contract call (the scheme forbids wrapping), so: the **settled transfer is the payment receipt**, and delivery (account genesis + 1 KEY) and the stamp are **redeemable rights**. A payer can transiently hold KEY without a stamp (client crash, wallet hiccup); no funds strand, every right remains redeemable, and the delivery leg itself is one atomic contract call that reverts whole.
 
-## The facilitator (x402 fee sponsor)
+## The facilitator (x402 fee sponsor) — implemented, not deployed
 
-The Hedera x402 exact scheme requires a facilitator that co-signs the payer's payment transfer as fee-payer and submits it. ORG runs the official template's self-hosted facilitator for the demo. The facilitator key sponsors network fees on the payer's *payment transfer* only — it never signs payer *testimony* (stamps are payer-signed, always). It never custodies payer funds.
+The Hedera x402 exact scheme's full wire flow has the payer partially sign the payment transfer and a facilitator co-sign as fee-payer and submit. The plugin's pay tool **implements** that flow (set `FACILITATOR_URL`), but **no facilitator is deployed for this MVP**: the demo settles in **direct mode** — the payer fully signs and self-sponsors the same conformant transfer, and every pay response discloses which mode ran. If a facilitator is ever used, its key sponsors network fees on the payer's *payment transfer* only — it never signs payer *testimony* (stamps are payer-signed, always) and never custodies payer funds.
+
+## The reasons field shipped before it was closed
+
+Rejection attestations carry a free-text `reasons` array, and the verifier currently constructs those strings by interpolating subject-message fields (the live attestation's `"unknown schema: undefined"` is this mechanism showing through). That means `reasons` is, today, a potential payload carrier: a crafted subject message could place attacker-chosen text into an ORG-signed attestation and onto the wall — a W-10 hole in the *verdict* path (the subject fields themselves remain derivations only). Recorded in `docs/verify-log.md` (2026-07-24); the fix is a closed reason-code enum (codes on the wire, display templates in the renderer), scheduled as Phase 2 work.
 
 ## The x402 payer needs a funded account
 
