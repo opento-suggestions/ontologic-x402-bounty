@@ -1,6 +1,6 @@
 # CURRENT_ARCHITECTURE.md — Witness Required, as built
 
-**State of the codebase as of 2026-07-24.** Every significant chunk of code is listed here with what it does and *why it is shaped that way* — each defense traces to the spec (`bounty-build-info.md` v0.2: W-invariants, D-decisions, V-verify items) or to an empirical verdict recorded in `docs/verify-log.md`. Where the build diverges from spec v0.2, the divergence is stated in §9, not papered over.
+**State of the codebase as of 2026-07-24.** Every significant chunk of code is listed here with what it does and *why it is shaped that way* — each defense traces to the spec (`SPEC.md`, v0.2 as amended: W-invariants, D-decisions, V-verify items; W-11/W-12 in `PHASE_2.md` §2) or to an empirical verdict recorded in `docs/verify-log.md`. Where the build diverges from spec v0.2, the divergence is stated in §9, not papered over. Read `CLAUDE.md` first for the working agreement and hard prohibitions.
 
 ---
 
