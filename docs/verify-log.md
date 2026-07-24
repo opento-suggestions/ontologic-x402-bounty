@@ -79,6 +79,15 @@ The type-level W-10 defense ("no field that could carry the attempt's payload") 
 - Subject: Lane A seq 2, consensus `1784493351.903971104` — the V-9 probe stamp, whose payload has **no `schema` field at all**. The live `"unknown schema: undefined"` is therefore `String(undefined)` from an absent field, exactly as predicted from `verify.ts`'s schema-dispatch branch. The interpolation finding above is confirmed against the live record, not just the code.
 - **Second interpolation site**, missed by the original entry: `verify.ts`'s Floridi branch pushes `` `ruleUri does not dereference: ${(e as Error).message}` ``, and the resolver's error text embeds subject content — `resolve.ts` throws `` `Invalid ruleUri format: ${ruleUri}. Expected: hcs://<topicId>/<timestamp>` `` (and similar). `ruleUri` is an attacker-chosen field: a message that passes the Peirce and split checks over its own crafted `ruleUri` (both hashes are computable by the author) reaches this branch and lands its `ruleUri` text in `reasons`. Both sites close together under the `ReasonCode` enum: `floridi.rule-unresolvable` carries no error text.
 
+### 2026-07-24 — facilitator contradiction resolved (direct mode is ground truth)
+
+The affidavit and the architecture doc briefly disagreed about the facilitator: LIMITATIONS.md carried the V-1 entry's forward-looking sentence ("ORG runs this for the demo") while CURRENT_ARCHITECTURE §9.7 said self-hosted facilitator deployment was not built and direct mode is the demo default. Ground truth, determined from the code:
+
+- `packages/mcp/src/tools/pay.ts` gates facilitator mode on `FACILITATOR_URL`; unset, it settles in **direct mode** (payer fully signs and self-sponsors the same conformant transfer). `.env.example` ships `FACILITATOR_URL` empty.
+- No facilitator deployment, Docker config, or facilitator key exists anywhere in this repo.
+
+**Resolution:** the 2026-07-19 V-1 sentence recorded an intention Phase 1 never built. CURRENT_ARCHITECTURE §9.7 was right. LIMITATIONS.md was corrected in commit `9b707e0` ("The facilitator (x402 fee sponsor) — implemented, not deployed"); the V-1 entry below now carries a superseded marker rather than a rewrite — dated records stay dated.
+
 ### 2026-07-19 — Lane A live; HIP-991 confirmed end-to-end
 
 Topics created with HIP-991 fixed fees at creation (fee schedule key retained = the re-peg lever): **WITNESS_HBAR `0.0.9645621`**, **WITNESS_KEY `0.0.9645622`** (Lane B fee provisional in HBAR until witness-KEY exists; re-peg to 1 KEY after token creation). No submit keys — the open door is deliberate (W-5/W-9). Note: revenue-generating topic creation is priced far above the SDK default max fee; scripts set an explicit 50-HBAR cap.
@@ -111,7 +120,7 @@ First paid stamp (WHITE trace, light) landed and verified keyless in **~3.0s sub
 - Delivery leg: vend execution (mint KEY → deliver to payer/alias → fund alias) is a separate transaction after settlement verification. The **settled transfer is the payment receipt; KEY delivery and the stamp are redeemable rights** — no funds strand, and failure of the delivery leg cannot un-settle the payment. W-1's Lane B wording is asymmetric one level earlier than V-9 anticipated; V-9 still governs whether delivery+stamp can fuse into one HIP-551 batch.
 - Refund posture: delivery-leg failure → re-execution (redeem) rather than refund; operator-refund of the settled transfer is the backstop. Disclosed in LIMITATIONS.md.
 
-**Facilitator:** the official template ships a **self-hosted facilitator** (Docker, `facilitator/`, `FACILITATOR_ACCOUNT_ID`/`FACILITATOR_PRIVATE_KEY`, "never custodies buyer funds — only co-signs pre-approved transfers"). ORG runs this for the demo with a dedicated fee-payer account. **W-2 note:** the facilitator key co-signs the payer's *payment transfer* as fee sponsor only — it never signs payer *testimony* (stamps remain payer-signed). Add to LIMITATIONS.md.
+**Facilitator:** the official template ships a **self-hosted facilitator** (Docker, `facilitator/`, `FACILITATOR_ACCOUNT_ID`/`FACILITATOR_PRIVATE_KEY`, "never custodies buyer funds — only co-signs pre-approved transfers"). ORG runs this for the demo with a dedicated fee-payer account. *(Superseded 2026-07-24 — see the facilitator-resolution note above: no facilitator was ever deployed; the pay tool implements the wire flow but the demo settles in direct mode.)* **W-2 note:** the facilitator key co-signs the payer's *payment transfer* as fee sponsor only — it never signs payer *testimony* (stamps remain payer-signed). Add to LIMITATIONS.md.
 
 **Assets:** testnet USDC confirmed live on mirror: **`0.0.429274`** ("USDC HBAR", 6 decimals; Circle-held admin/freeze keys). HBAR exact-scheme = `asset: "0.0.0"`.
 
