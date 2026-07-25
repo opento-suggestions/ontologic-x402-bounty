@@ -29,8 +29,11 @@ Lane A 0.0.9645621 (0.01 HBAR fee)   Lane B 0.0.9645622 (1 wKEY fee → contract
 | WitnessVendingMachine | `0.0.9645863` | operator holds admin relationship only |
 | witness-KEY (wKEY) | `0.0.9645864` | treasury = contract, supply key = contract, **admin key = null** |
 | ORG operator | `0.0.8641261` | the ONE ORG key (W-2 carve-out) |
-| payer-agent (demo) | `0.0.9646033` | the agent's funding account, distinct from operator by boot-check |
+| payer-agent (demo) | `0.0.9646033` | the agent's funding account, distinct from operator AND root by boot-check |
 | Read-only inputs | RULE_DEFS `0.0.8641938` · RULE_REGISTRY `0.0.8641941` · PROOF `0.0.8641943` | untouched, v0.8.3 sphere |
+| ORG root (Phase 2) | *ceremony §3.1 — ID recorded here after creation* | the SECOND ORG key; registry submit key; writes mandates/revocations/witness rules, never verdicts |
+| Witness Rule Registry (Phase 2) | *ceremony §3.2 — immutable at birth* | submit = root, admin = NONE; witness RuleDefs + mandates + revocations |
+| Verdict Topic (Phase 2) | *ceremony §3.3 — immutable at birth* | submit = operator, admin = NONE, no fee; all ORG rejection attestations from the mandate era on |
 
 **Repo map:** `packages/core` (the seam — zero Hedera SDK) · `packages/mcp` (the goose plugin — the payer-agent's process) · `packages/contracts` (KEY custody) · `scripts/` (ORG-side testnet operations) · site pages live in the separate `ontologic-dev` repo (`static/witness`, `static/wall`, `netlify/functions/x402.mts`).
 
@@ -51,7 +54,9 @@ The spec's W-series is enforced by *structure*, not by policy, wherever possible
 | W-7 published price list | `scripts/peg.ts` → `emit-requirements.ts` | ONE price authority emits both the machine config and the site JSON |
 | W-8 the affidavit | `LIMITATIONS.md` | every disclosure sourced from the phase that generated it |
 | W-9 closed claim space | `core/claims.ts` | claims outside the space throw before any network write is possible |
-| W-10 no payload pollination | `core/schema.ts` (rejection carries hash only), `wall/js/wall.js` (invalid → no DOM node) | structural: the data types cannot carry foreign bytes to a renderer |
+| W-10 no payload pollination | `core/schema.ts` (rejection carries hash only), `core/reasons.ts` (closed code space), `wall/js/wall.js` (invalid → no DOM node) | structural: the data types cannot carry foreign bytes to a renderer |
+| W-11 mandated verdicts | disjoint submit keys (ceremony §3); `schema.buildMandateMorpheme` (self-grant unconstructible); `verify.ts` W-11 chain; `reject-attest.ts` in-window refusal | the operator cannot write a mandate; a verdict resolves grant → window → scope or judges invalid + `mandate.*` |
+| W-12 anchor sufficiency | `core/anchors.ts` + `resolve.verifyAnchors` + `timestamps.ts` exact arithmetic | every verdict input is a topic message or immutable topic config; no `/accounts`, no `/transactions`, no floats at boundaries |
 
 ---
 
@@ -103,14 +108,25 @@ Bundle shapes are copied from `ontologicv0.5_clean/examples/v07/bundle-white-ent
 
 `judgeMessage` (50) produces the three-way verdict `valid | rejection | invalid` used by the MCP verify tool, the reject-attest script, and (as a JS port) the wall. Check order is deliberate: parse → schema dispatch → structural fields → hash well-formedness → **Peirce** (bindingHash recomputes from parts) → **the split holds** (ruleUriHash = sha256) → **Floridi** (ruleUri dereferences to a self-verifying RuleDef). Failures carry `reasons: ReasonCode[]` from the closed space in `src/reasons.ts` (Phase 2a) — verdicts are explanations, not booleans, because the reject-attest script stamps those reasons on-chain, and codes-not-text is what keeps that stamp free of subject content (W-10; the pre-fix interpolation and its one live attestation are recorded in the verify-log, 2026-07-24). Display text is a renderer-side `reasonText` lookup; the wall's port of that lookup is cross-repo work (PHASE_2 §8). Invalid messages yield only `messageHash` (keccak of the raw bytes) — a derivation the wall can safely mention, never the bytes.
 
-### 3.8 `test/` — the lock, four layers
+### 3.8 `test/` — the lock, seven layers
 
 1. `canonicalize.test.ts` — **pinned seq-42 vectors** from the live sphere (protocol lock, offline).
 2. `crosscheck.test.ts` — every live proof on `0.0.8641943` recomputes (recipe equivalence, network, skips offline).
 3. `claims.test.ts` — the closed space refuses outsiders; both WHITE claims build deterministically against the live registry.
 4. `golden.test.ts` — this repo's own first Lane A stamp (regression anchor, offline).
+5. `reasons.test.ts` — the closed reason space refuses unknown codes; no template carries an interpolation site (offline).
+6. `mandate.test.ts` — grant lifecycle: self-grant unconstructible, window boundaries at nanosecond precision, revocation never retroactive, wrong-topic/forged grants judged out (offline).
+7. `attestation.test.ts` — the v0.2 attestation is a real morpheme; mandateHash unsealed in M; the live v0.1 attestation stands as history (offline).
 
-21 tests; the offline subset alone locks the recipe, so CI without network stays meaningful.
+58 tests; the offline subset alone locks the recipe, so CI without network stays meaningful.
+
+### 3.9 The authority layer in core (Phase 2b, PHASE_2 §4)
+
+- **`src/anchors.ts`** — `TRUST_ANCHORS`: the two authority topic IDs + the first mandate's timestamp, **null until the ceremony pins them**; the verifier's off-chain root of trust (W-12), and deliberately so — changing them is a verifier-release event (disclosed in LIMITATIONS.md).
+- **`src/timestamps.ts`** — exact consensus-timestamp comparison (BigInt seconds, nanos padded to nine digits). No floats: two honest readers can never disagree at a window boundary.
+- **`src/schema.ts` additions** — `MandateMorpheme` (I = principal/grantee/scope/window/nonce, O = `granted`; **`mandateHash` IS its `bindingHash`** — no new hash primitive, same seam wrappers), `MandateRevocation`, and `RejectionAttestationV2` (a full morpheme: I = subject derivations, O = verdict + `ReasonCode[]`, M carries `mandateHash` + statusProfile **unsealed** — the statusProfile placement pattern, applied to authority; tested: changing `mandateHash` never moves `bindingHash`). Builders refuse self-grants, empty nonces, empty windows, out-of-space scopes/reasons — the claims.ts refusal, everywhere.
+- **`src/resolve.ts` additions** — `resolveMandate` (registry scan; a claimed `mandateHash` is **never believed** — the grant's hashes recompute or it does not exist) and `verifyAnchors` (W-12(b) executable: `admin_key: null` + expected submit key, throws on violation).
+- **`src/verify.ts`** — `judgeMessage` gains `mandate`/`revocation` kinds and the W-11 chain on v0.2 attestations in spec order (wrong-topic → resolves → in-window → in-scope), each failure `invalid` + the specific `mandate.*` code behind the single `outOfMandateKind()` predicate (§6.2). Cross-registry impersonation defense on both R lookups (witness rules must live on the witness registry AND declare `witness.*` domains). The pre-mandate v0.1 attestation stands as history (§4.4 temporal clause). **Signature unchanged** — see §9.8.
 
 ---
 
@@ -166,6 +182,8 @@ Shared plumbing `lib/ops.ts`: `openOperatorClient` (assertTestnet → client →
 - `redeem.ts` — ORG honoring receipts: scans the treasury's incoming transfers on mirror for `x402:witness-required:vend:` memos at the published price, then `vend(alias)`. **Idempotent by public state** (alias already holding wKEY → skip), so the watcher can run hot during the demo without double-delivery. This is the ONE ORG-signed action on the delivery path, and it signs no testimony.
 - `reject-attest.ts` — lazy attestation (D-6/D-7): judges at read time exactly as any reader would; only `invalid` verdicts proceed; attests **derivations only**; pays the lane's own published fee (the economics that kill the drain-attack: durability is funded by the party who wants it durable — here, ORG, manually). Refuses to attest about non-lane topics. Live: first attestation covers Lane A seq 2 (probe garbage), and the wall renders the attestation while the attempt still has no tile.
 - `probe-vending.ts` / `probe-batch.ts` — Phase 0 falsifier probes, kept in-tree as the executable form of the verify-log entries (V-5 all-proven; V-9 practical-NO with the two-step fallback demonstrated).
+- **Ceremony scripts (Phase 2, §3 — written, guarded, NOT yet executed; human gate required):** `create-root.ts` (single-shot, key-distinct, mirror read-back) · `create-authority-topics.ts` (all five §3.4 guards, including no-admin-key asserted in the built transaction and `verifyAnchors` read-back) · `publish-witness-rules.ts` (publishes the ratified `rules/` content with self-hashing `contentHash`, two-message pattern, keyless round-trip before success) · `grant-mandate.ts` (window as arguments, fresh nonce, read-back judges the grant, first-mandate era banner) · `revoke-mandate.ts` (refuses unresolvable or already-revoked targets). `openRootClient` asserts ROOT≠OPERATOR on every open.
+- `reject-attest.ts` — **rewritten for the mandate era**: refuses to run unless its own mandate currently resolves in-window (ORG cannot render out-of-mandate by accident); builds the v0.2 full-morpheme attestation against the conformance rule; writes to the **Verdict Topic**, not the subject's lane (§8b — judgment does not live behind the open door); read-back runs the full W-11 chain on its own verdict. Still lazy, still manual, still refuses foreign topics.
 - `create-payer.ts` / `mcp-smoke.ts` — demo provisioning and the full storyline driven through the plugin's own handlers (the rehearsal script).
 
 ---
@@ -209,12 +227,15 @@ V-1a (CLOSED: YES — literal HTTP 402 is the conformance surface) made this req
 5. **statusProfile** is the provisional 0.1-mvp envelope (steward-approved), unsealed by construction (§3.5).
 6. **D-5 resolved off-menu**: repo is `opento-suggestions/ontologic-x402-bounty` (user-created), Apache-2.0. D-8 resolved: multiplicity badge.
 7. **Not built (cut-safe, spec-sanctioned)**: self-hosted facilitator deployment (pay tool supports it; direct mode is the demo default), HashPack human lane (secondary, "non-blocking for the agent demo"), read-side convenience metering (explicitly out of scope §7).
+8. **`judgeMessage`'s signature did not change** — PHASE_2 §4.4 predicted a three-caller break, but the judge already carried `topicId` (its §9 coverage note suspected exactly this). Authority context arrived as optional fields defaulting from `TRUST_ANCHORS`; all callers compile unchanged and the wall pass was additive.
+9. **The single witness registry retains the two-message pattern** (`ruleDef` + `ruleRegistryEntry`) — PHASE_2 §3.2 listed three schema-discriminated classes, but registry entries are a necessary fourth: they carry `ruleUri`/`ruleUriHash` (unknowable before the ruleDef's own consensus timestamp) and let `resolveLatestRule` work unchanged against the witness topic.
+10. **The wall reads FOUR topics post-ceremony, not three** (PHASE_2 §8's count): two lanes + the Verdict Topic + the registry, because the registry is both a rendering source (lineage roots) and the mandate-resolution context.
 
 ---
 
 ## 10. Verification state
 
-- 21/21 vitest (pinned + golden + crosscheck + claims + schema).
+- 58/58 vitest (pinned + golden + crosscheck + claims + schema + reasons + mandate + attestation); `canonicalize.test.ts` and `golden.test.ts` byte-unmodified through every Phase 2 change — the additivity proof.
 - Both lanes end-to-end **twice**: raw scripts, then again through the MCP tool handlers (`mcp-smoke.ts`).
 - Wall + browser verifier validated headlessly against live topics: 2 tiles (×4, ×2), 1 verdict-tile, 2 invalid → no tile.
 - Full burn loop observed on-chain: mint-on-vend → fee-to-treasury → `total_supply: 0`.

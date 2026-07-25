@@ -20,9 +20,14 @@ Reads are free and public — mirror-node REST is the canonical read path; the P
 | `packages/core/` | `@witness/core` — canonical hash seam, claim builders, mirror client, keyless verifier |
 | `packages/mcp/` | `witness-mcp` — the goose plugin (MCP server, stdio) |
 | `packages/contracts/` | `WitnessVendingMachine.sol` + hardhat |
-| `scripts/` | testnet operations: probes, topic creation, smokes, operator attestation |
+| `scripts/` | testnet operations: probes, topic creation, smokes, ceremony scripts, mandated attestation |
+| `rules/` | the witness-layer RuleDefs (steward-ratified content; published at the ceremony) |
 | `docs/verify-log.md` | dated V-series verification findings |
 | `docs/evidence.md` | HashScan links for every on-chain action |
+
+## Judgment is mandated (Phase 2)
+
+Testimony and judgment are separate layers. Anyone can pay a lane's published fee and write (that open door is the point — W-5); ORG's *verdicts* live on a dedicated **Verdict Topic** whose submit key is the operator's, under a revocable **mandate** granted by a distinct ORG root key on the immutable **Witness Rule Registry**. Both authority topics are born without admin keys — permanent by construction — and a keyless reader confirms the whole chain (grant, window, scope, revocation) from public mirror REST alone. Topic IDs are recorded here after the one-shot creation ceremony. See `PHASE_2.md` and [LIMITATIONS.md](LIMITATIONS.md).
 
 ## Run
 

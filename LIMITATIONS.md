@@ -11,9 +11,11 @@ This document declares, plainly, what each component of Witness Required can and
 
 Stamps carry a provisional `statusProfile` envelope (`schemaVersion: "0.1-mvp"`) with statuses `declared | missing | vague | blurred | stale | timed-out | withheld`. It rides **beside** the proof in the HCS message and is **not sealed into any hash** — the finalized Sorensen schema can supersede it without invalidating a single stamp. A stamp without the envelope reads as `status: missing`.
 
-## Lane equality (W-3)
+## Lane equality (W-3) — and its one carve-out
 
 A KEY-stamped proof and an HBAR-stamped proof are epistemic equals. Fee denomination changes economics, never trust-class. Lane is not tier.
+
+The carve-out is a different layer: lane equality binds *testimony*. Topic identity **is** a trust input for the *authority* layer — a verdict is only ORG's if it sits on the Verdict Topic, because that topic's submit key is what makes the attribution (W-11). Testimony is judged the same everywhere; judgment is judged by where it lives.
 
 ## The integrity condition (W-5)
 
@@ -27,9 +29,16 @@ Prices are manually pegged for the MVP: testnet HBAR notionally at $0.10. Testne
 
 A reverted vending call refunds the payer's principal but not the network fee the failed transaction itself incurred. *[Exact observed revert behavior recorded after Phase 3 testnet smokes.]*
 
-## Operator account — existence and blast radius
+## ORG keys — the two-key structure and blast radius
 
-One ORG-held operational key exists. It holds the vending contract's admin relationship and is the sole party authorized to render failed-attempt verdicts in the MVP. It never signs payer testimony. If compromised, an attacker can fabricate false *rejection attestations* — it can slander an attempt, never forge a witness.
+Two ORG-held keys exist, with disjoint powers (W-11; the root is created at the Phase 2 ceremony and its account ID is recorded here then):
+
+- **Root** holds the Witness Rule Registry's submit key. It writes mandates, revocations, and the witness-layer RuleDefs. It renders no verdicts and never touches payer testimony.
+- **Operator** holds the Verdict Topic's submit key and the vending contract's admin relationship. It renders failed-attempt verdicts *under a mandate* and never signs payer testimony (W-2).
+
+The operator physically cannot write a mandate — it does not hold the registry's submit key. A self-signed grant is not detected; it is unconstructible.
+
+Blast radius, amended (W-8): a compromised operator key can slander attempts only within the un-revoked mandate window, and every such slander is auditable against the mandate record; it can never forge a witness. Revocation is one root message away, and everything signed after it is machine-detectably unauthorized. A compromised root key is graver — it can grant false mandates — but it still cannot forge a witness, and the recovery is the same abandon-and-re-anchor path disclosed below.
 
 ## KEY token provenance
 
@@ -48,6 +57,15 @@ The Hedera x402 exact scheme's full wire flow has the payer partially sign the p
 Rejection attestations originally carried a free-text `reasons` array whose strings interpolated subject-message fields — a W-10 hole in the *verdict* path (the subject fields themselves were always derivations only): a crafted subject message could have placed attacker-chosen text into an ORG-signed attestation and onto the wall. **Closed 2026-07-24 (Phase 2a):** `reasons` is now a closed `ReasonCode` enum (`packages/core/src/reasons.ts`) — codes are the wire format, display templates live in a renderer-side lookup, and anything outside the space fails at construction. No reason interpolates subject content; a reason that must point at something points with a hash or an offset, never a value.
 
 What cannot be closed retroactively: the one attestation stamped before the fix (Lane A `0.0.9645621` seq 7) carries the interpolated string `"unknown schema: undefined"` immutably, and stands as history. Its benign form (`String(undefined)` from an absent field) is the mechanism showing through; the full record is in `docs/verify-log.md` (2026-07-24). The wall's display lookup for the new codes is cross-repo work (`ontologic-dev`); until it lands, codes render as codes — inert fixed strings, not payloads.
+
+## The authority layer (Phase 2) — what is accepted, plainly
+
+- **The authority topics' submit keys are permanent and unrecoverable.** Both topics are created without admin keys, because immutability must be chosen at creation (V-11) and a rotatable submit key would make topic membership worthless as attribution. Loss of a submit key means no further writes on that topic, ever; compromise means the writer keeps write access, though every post-revocation write is machine-detectably out-of-mandate. The only recovery is **abandon-and-re-anchor** — accepted and scoped as such for the MVP bounty submission.
+- **The trust anchors are off-chain constants.** The two topic IDs (and the first mandate's timestamp) are pinned in the verifier's source, here and in the wall. Changing them is a verifier-release event, not an on-chain one. This is deliberate (W-12): every other input to a verdict is a topic message or immutable topic configuration; the anchors are where the regress stops.
+- **The mandate window and revocation path.** A verdict is authorized only if its own consensus timestamp falls inside `[notBefore, revocation ∨ notAfter)` of a resolvable, in-scope mandate. Revocation is effective at its consensus instant and never retroactive: in-window verdicts stand forever. Expiry and revocation stop *new* verdicts; they never rewrite history.
+- **The mandate's trust-class is advisory, not attested.** statusProfile rides unsealed beside every morpheme by design (so the finalized schema can supersede it without invalidating stamps) — which means a mandate's statusProfile is not covered by its mandateHash either. The grant's *content* is sealed; its trust-class annotation is not.
+- **Verdicts are now near-free for ORG to write.** The Verdict Topic carries no fee. D-6 is not reopened — laziness was always the defense, not the fee — but the discipline is now purely procedural rather than economic: nothing auto-emits, verdicts are summoned manually, and the attest script refuses to run out-of-mandate.
+- **The pre-mandate attestation stands.** The one rejection attestation rendered before the first mandate (Lane A seq 7) is history: judged as it always was, never retroactively condemned, and rendered with a fixed legacy label rather than its pre-closed-space reason string.
 
 ## The x402 payer needs a funded account
 
