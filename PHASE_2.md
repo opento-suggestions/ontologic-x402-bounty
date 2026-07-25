@@ -186,21 +186,31 @@ The delegation rule has the same problem as the conformance rule: it must exist 
 
 Fold into `invalid` with a distinguishing reason code, or promote to a fourth verdict class with its own rendering. Recommendation: `invalid` plus code, with the wall's ledger line splitting the count — *"N nonconforming, of which K unauthorized"* — so an unauthorized ORG-signed verdict gets louder treatment than probe garbage without a new tile type. Cheap to change if it's implemented behind one predicate.
 
+> **Resolved 2026-07-25 (steward):** the recommendation stands — `invalid` + `mandate.*` code, behind the single named predicate.
+
 ### 6.3 Mandate scope grammar — undecided
 
 `scope` needs a concrete shape before the in-scope check is implementable. Minimum viable: `{ verdictClass: "rejection-attestation", topicId: <verdict topic> }`. Anything richer is a decision.
+
+> **Resolved 2026-07-25 (steward):** minimum viable adopted — `{ verdictClass, topicId }`, nothing richer for the MVP.
 
 ### 6.4 First mandate's window — governance, not architecture
 
 `notBefore` / `notAfter` values. Short windows mean compromise self-expires but the root key comes out on a schedule; a long or open window means the root key stays cold but response depends on liveness.
 
+> **Resolved 2026-07-25:** ~30 days (`notBefore` = ceremony, `notAfter` ≈ +30d), passed as arguments to `grant-mandate.ts` — nothing hardcodes it. A seconds-scale window was considered and rejected: mirror lag (3–7s, V-7) plus the attest script's own mandate-resolution read makes it a race against consensus, and the bounded-compromise property lives in *revocation* (one root message), not expiry — a verdict is judged against its own consensus timestamp, so expiry never rewrites history, it only stops new verdicts.
+
 ### 6.5 One registry topic vs. two — confirm
 
 The steward decision was one topic holding R + mandates + revocations. The colour sphere uses two. Confirm the divergence is intentional before creation, because it cannot be split afterward.
 
+> **Confirmed 2026-07-25 (steward):** intentional. ONE new registry topic, for the witness/authority layer only — the paid reasoning proofs that callers buy keep resolving against the original colour-sphere topics (read-only, untouched); verdicts resolve against the new Witness Rule Registry. The two-message pattern (ruleDef + ruleRegistryEntry) is retained on the single topic, schema-discriminated, so `resolveLatestRule` works unchanged against it.
+
 ### 6.6 Re-issue the existing attestation? — micro
 
 The live Lane A attestation stands as pre-mandate history under §4.4's temporal clause. Whether to also render a conforming equivalent on the Verdict Topic, so the wall has a mandated example, is a demo call.
+
+> **Resolved 2026-07-25 (steward):** yes — re-issue a conforming, mandated equivalent on the Verdict Topic post-ceremony, so the wall's lineage tree has a real mandated example.
 
 ---
 
