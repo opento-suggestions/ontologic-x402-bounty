@@ -13,15 +13,16 @@
  */
 
 /**
- * One code per real failure branch in judgeMessage. The mandate.* codes are
- * part of the wire format NOW (stable for Phase 2b) but NOTHING emits them
- * yet — the mandate-resolution machinery that produces them is Phase 2b.
+ * One code per real failure branch in judgeMessage — the stamp branches from
+ * Phase 2a, the authority branches (mandate.*, structure.reason-outside-space)
+ * from Phase 2b's W-11 machinery.
  */
 export type ReasonCode =
   | "parse.invalid-json"
   | "schema.missing"
   | "schema.unknown"
   | "structure.missing-field"
+  | "structure.reason-outside-space"
   | "hash.malformed"
   | "peirce.binding-mismatch"
   | "split.rule-uri-hash-mismatch"
@@ -29,7 +30,8 @@ export type ReasonCode =
   | "mandate.unresolvable"
   | "mandate.out-of-window"
   | "mandate.scope-mismatch"
-  | "mandate.wrong-topic";
+  | "mandate.wrong-topic"
+  | "mandate.self-granted";
 
 /** Display templates. Fixed strings only — no interpolation sites, ever. */
 export const REASONS: Record<ReasonCode, string> = Object.freeze({
@@ -37,6 +39,7 @@ export const REASONS: Record<ReasonCode, string> = Object.freeze({
   "schema.missing": "message declares no schema field",
   "schema.unknown": "message schema is not a recognized witness schema",
   "structure.missing-field": "a required proof field is missing or empty",
+  "structure.reason-outside-space": "a reasons entry is outside the closed reason space",
   "hash.malformed": "a proof hash field is not a 32-byte hex string",
   "peirce.binding-mismatch": "bindingHash does not recompute from {ruleUri, inputsHash, outputsHash}",
   "split.rule-uri-hash-mismatch": "ruleUriHash does not recompute (sha256 of ruleUri)",
@@ -45,6 +48,7 @@ export const REASONS: Record<ReasonCode, string> = Object.freeze({
   "mandate.out-of-window": "verdict consensus timestamp falls outside the mandate window",
   "mandate.scope-mismatch": "mandate scope does not cover this verdict class and topic",
   "mandate.wrong-topic": "verdict is not on the mandated verdict topic",
+  "mandate.self-granted": "mandate principal and grantee are the same account",
 });
 
 /** Membership test — the only gate anything needs to admit a reason. */
