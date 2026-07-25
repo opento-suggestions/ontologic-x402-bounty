@@ -1,0 +1,56 @@
+{
+  "schema": "hcs.ontologic.ruleDef",
+  "schemaVersion": "1",
+  "ruleId": "witness://org/authority/delegation",
+  "version": "1.0.0",
+  "versionNumber": 1,
+  "domain": "witness.authority",
+  "operator": "grant_mandate@v1",
+  "engineType": "read-time-verifier",
+  "engineRef": "opento-suggestions/ontologic-x402-bounty packages/core/src/verify.ts judgeMessage + resolveMandate",
+  "relation": "grant(principal, grantee, scope, window, nonce) -> { verdict: granted }",
+  "status": "active",
+  "description": "The delegation rule: what makes a mandate-morpheme a valid grant of verdict authority (W-11). A mandate's R resolves here; its bindingHash is the mandateHash every mandated verdict cites. Authority that cannot be revoked was never granted - it was surrendered.",
+  "constraints": [
+    "The grantee never signs payer testimony (restates W-2). No mandate can grant what the architecture forbids: the payer signs their own stamp, always, on every lane.",
+    "The grantee never renders success verdicts - the stamp is the verdict. This clause is load-bearing: success needing no verdict is what keeps D-6's lazy-attestation economics closed. A delegation rule without it silently reopens the drain vector.",
+    "The mandate chain is depth-1: ORG root (self-grounding, no mandateHash in M) -> operator. Recursive delegation is reserved to Coprocessor I-9 and the D-7 roadmap. A mandate whose principal is not the root is out of scope for this build's verifier."
+  ],
+  "grantValidity": [
+    {
+      "order": 1,
+      "check": "principal and grantee are distinct accounts - a self-granted mandate is not a grant",
+      "onFailure": "mandate.self-granted"
+    },
+    {
+      "order": 2,
+      "check": "the principal is the registry's root: enforced by the network, not by content - only the root key can write to the Witness Rule Registry (immutable submit key, V-11), so a mandate's presence on the registry IS its principal's signature",
+      "onFailure": "unwritable - the network refuses the message at consensus"
+    },
+    {
+      "order": 3,
+      "check": "scope is exactly { verdictClass, topicId } with verdictClass in the closed space ['rejection-attestation'] - nothing richer in MVP",
+      "onFailure": "mandate.scope-mismatch (at verdict time, against the verdict's class and topic)"
+    },
+    {
+      "order": 4,
+      "check": "the window is non-empty: notBefore < notAfter when notAfter is present; both consensus-style timestamps. A verdict is in-window when its own consensus timestamp falls in [notBefore, revocation-or-notAfter) - half-open, judged with exact arithmetic, never against query-time state (W-12)",
+      "onFailure": "mandate.out-of-window"
+    },
+    {
+      "order": 5,
+      "check": "a nonce is present: mandate identity is content-derived (the bindingHash), so a revoked grant's identity is permanently dead and re-granting requires fresh content",
+      "onFailure": "unconstructible - the builder refuses"
+    },
+    {
+      "order": 6,
+      "check": "revocation: a root-submitted mandateRevocation naming this mandateHash ends the window at the revocation's consensus timestamp - effective from that instant, never retroactive; verdicts rendered in-window stand forever",
+      "onFailure": "mandate.out-of-window (for verdicts at or after the revocation instant)"
+    }
+  ],
+  "verdictClause": {
+    "success": "verdict 'granted', sealed as the mandate's O - the only success verdict in the witness layer, and it grants only the authority to render failures",
+    "unresolvable": "a verdict citing a mandateHash that does not resolve on the registry (verified by recomputation, never by claim) is out-of-mandate: mandate.unresolvable"
+  },
+  "reasonSpaceRef": "packages/core/src/reasons.ts REASONS - codes are the wire format; display templates are renderer-side only"
+}

@@ -1,0 +1,68 @@
+{
+  "schema": "hcs.ontologic.ruleDef",
+  "schemaVersion": "1",
+  "ruleId": "witness://org/verdict/lane-conformance",
+  "version": "1.0.0",
+  "versionNumber": 1,
+  "domain": "witness.verdict",
+  "operator": "judge_conformance@v1",
+  "engineType": "read-time-verifier",
+  "engineRef": "opento-suggestions/ontologic-x402-bounty packages/core/src/verify.ts judgeMessage",
+  "relation": "subject-message -> { verdict: rejected, reasons: ReasonCode[] }",
+  "status": "active",
+  "description": "What makes a witness-lane message conformant, as an ordered predicate chain. A rejection attestation's R resolves here: its I is the subject's derivations only (topic, consensus timestamp, sequence, byte-hash - never the payload, W-10), its O is the verdict plus reason codes from the closed space. Success bears no verdict: a stamp that passes every predicate IS its own verdict (D-6/D-7), and this rule authorizes rendering failures only.",
+  "subjectClass": "witness-lane-message",
+  "inputsSpec": {
+    "subjectTopicId": "the lane topic the attempt landed on",
+    "subjectConsensusTimestamp": "the attempt's consensus instant",
+    "subjectSequenceNumber": "the attempt's sequence number on that topic",
+    "subjectMessageHash": "keccak256 of the attempt's raw message bytes - the only derivation an invalid message gets"
+  },
+  "predicates": [
+    {
+      "order": 1,
+      "check": "the raw bytes parse as JSON",
+      "onFailure": "parse.invalid-json"
+    },
+    {
+      "order": 2,
+      "check": "the payload declares a schema field",
+      "onFailure": "schema.missing"
+    },
+    {
+      "order": 3,
+      "check": "the declared schema is a recognized witness schema (hcs.ontologic.witness.stamp or hcs.ontologic.morphemeProof)",
+      "onFailure": "schema.unknown"
+    },
+    {
+      "order": 4,
+      "check": "the proof carries ruleId, ruleUri, ruleUriHash, inputsHash, outputsHash, bindingHash as non-empty strings",
+      "onFailure": "structure.missing-field"
+    },
+    {
+      "order": 5,
+      "check": "ruleUriHash, inputsHash, outputsHash, bindingHash are 32-byte hex",
+      "onFailure": "hash.malformed"
+    },
+    {
+      "order": 6,
+      "check": "Peirce: bindingHash recomputes as keccak256(canonical({ruleUri, inputsHash, outputsHash}))",
+      "onFailure": "peirce.binding-mismatch"
+    },
+    {
+      "order": 7,
+      "check": "the split holds: ruleUriHash equals sha256 of the ruleUri string",
+      "onFailure": "split.rule-uri-hash-mismatch"
+    },
+    {
+      "order": 8,
+      "check": "Floridi: the ruleUri dereferences to a self-verifying RuleDef in its registry",
+      "onFailure": "floridi.rule-unresolvable"
+    }
+  ],
+  "verdictClause": {
+    "success": "no verdict is rendered - the stamp is the verdict; nothing exists for this rule to add",
+    "failure": "verdict 'rejected' with the failing predicate's ReasonCode; reasons never carry subject-message content - a reason that must point at something points with a hash or an offset, never a value (W-10)"
+  },
+  "reasonSpaceRef": "packages/core/src/reasons.ts REASONS - codes are the wire format; display templates are renderer-side only"
+}
