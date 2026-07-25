@@ -10,8 +10,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { Client, Hbar, PrivateKey } from "@hashgraph/sdk";
-import { assertTestnet, getOperatorConfig } from "../../packages/core/src/config.js";
+import { Client, Hbar, PrivateKey, type TransactionRecord } from "@hashgraph/sdk";
+import { assertTestnet, getAuthorityConfig, getOperatorConfig } from "../../packages/core/src/config.js";
+import type { MirrorMessage } from "../../packages/core/src/mirror.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -25,6 +26,58 @@ export function openOperatorClient(): { client: Client; operatorId: string; oper
   // SDK defaults undershoot. Cap generously — the network charges actuals.
   client.setDefaultMaxTransactionFee(new Hbar(50));
   return { client, operatorId: op.id, operatorKey };
+}
+
+/**
+ * The ROOT client (Phase 2, W-11). Root holds the Witness Rule Registry's
+ * submit key and NOTHING else — it writes mandates, revocations, and the
+ * witness RuleDefs, and it must be a different key from the operator's
+ * (asserted here on every open, not just at creation).
+ */
+export function openRootClient(): { client: Client; rootId: string; rootKey: PrivateKey } {
+  assertTestnet();
+  const auth = getAuthorityConfig();
+  if (!auth.rootId || !auth.rootDerKey) {
+    throw new Error("ROOT_ID / ROOT_DER_KEY not set — run scripts/create-root.ts (ceremony §3.1) first.");
+  }
+  const rootKey = PrivateKey.fromStringDer(auth.rootDerKey);
+  const op = getOperatorConfig();
+  const operatorPub = PrivateKey.fromStringDer(op.derKey).publicKey.toStringRaw().toLowerCase();
+  if (rootKey.publicKey.toStringRaw().toLowerCase() === operatorPub) {
+    throw new Error("ROOT key equals OPERATOR key — the two-key structure is the invariant (W-11). Refusing.");
+  }
+  const client = Client.forTestnet().setOperator(auth.rootId, rootKey);
+  client.setDefaultMaxTransactionFee(new Hbar(50));
+  return { client, rootId: auth.rootId, rootKey };
+}
+
+/** Record consensus timestamp → mirror-style "seconds.nanos" string. */
+export function consensusString(record: TransactionRecord): string {
+  const ts = record.consensusTimestamp;
+  return `${ts.seconds}.${ts.nanos.toString().padStart(9, "0")}`;
+}
+
+/**
+ * Wait out mirror lag (3–7s on testnet, V-7) for the message at an EXACT
+ * consensus timestamp — mirror's `timestamp=` filter is >=, so equality is
+ * asserted or the next message could impersonate the one we wrote.
+ */
+export async function awaitMirrorMessage(
+  mirrorNodeUrl: string,
+  topicId: string,
+  consensusTimestamp: string,
+  tries = 10,
+): Promise<MirrorMessage> {
+  for (let i = 0; i < tries; i++) {
+    const resp = await fetch(`${mirrorNodeUrl}/topics/${topicId}/messages?timestamp=${consensusTimestamp}`);
+    if (resp.ok) {
+      const data = (await resp.json()) as { messages?: MirrorMessage[] };
+      const msg = data.messages?.[0];
+      if (msg && msg.consensus_timestamp === consensusTimestamp) return msg;
+    }
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  throw new Error(`Mirror never showed ${topicId} @ ${consensusTimestamp} after ${tries} tries.`);
 }
 
 export function hashscanTx(txId: string): string {

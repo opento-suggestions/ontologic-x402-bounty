@@ -50,6 +50,11 @@ export function getPayerConfig(): PayerConfig {
       "PAYER_ID equals OPERATOR_ID. The payer-agent must be distinct from the ORG operator (W-2; and the fee collector is exempt from its own fees, which would fake the demo).",
     );
   }
+  if (process.env.ROOT_ID && id === process.env.ROOT_ID) {
+    throw new Error(
+      "PAYER_ID equals ROOT_ID. W-2's carve-out covers two ORG keys now (PHASE_2 §3.1) — the plugin holds neither: the root writes mandates, the operator renders verdicts, and the payer-agent is neither of them.",
+    );
+  }
   return { id, derKey };
 }
 

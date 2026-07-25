@@ -98,6 +98,31 @@ export function getWitnessConfig(): WitnessConfig {
   };
 }
 
+/**
+ * Phase 2 authority entities (PHASE_2 §3), filled in by the ceremony scripts.
+ * Env naming follows the repo's *_DER_KEY convention (§3.1 wrote "ROOT_KEY";
+ * the DER suffix is this codebase's existing dialect for the same thing).
+ */
+export interface AuthorityConfig {
+  rootId: string | null;
+  rootDerKey: string | null;
+  witnessRulesTopicId: string | null;
+  verdictTopicId: string | null;
+  mandateHash: string | null;
+  firstMandateTimestamp: string | null;
+}
+
+export function getAuthorityConfig(): AuthorityConfig {
+  return {
+    rootId: process.env.ROOT_ID || null,
+    rootDerKey: process.env.ROOT_DER_KEY || null,
+    witnessRulesTopicId: process.env.WITNESS_RULES_TOPIC || null,
+    verdictTopicId: process.env.WITNESS_VERDICT_TOPIC || null,
+    mandateHash: process.env.WITNESS_MANDATE_HASH || null,
+    firstMandateTimestamp: process.env.WITNESS_FIRST_MANDATE_TS || null,
+  };
+}
+
 /** Hard-fail, loudly, if anything points at mainnet. Testnet only. */
 export function assertTestnet(): void {
   const net = getNetworkConfig();
