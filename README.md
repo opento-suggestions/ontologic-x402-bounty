@@ -34,7 +34,37 @@ Testimony and judgment are separate layers. Anyone can pay a lane's published fe
 ```bash
 npm install && cp .env.example .env   # TESTNET key only — a mainnet URL hard-fails
 npm test                              # offline: pinned + golden + crosscheck vectors
-npm run smoke:lane-a                  # one paid stamp, end to end
+npm run smoke:lane-a                  # ORG-side floor test (needs the operator key)
 ```
+
+## Testing from a fresh clone (Lane A — anyone can)
+
+The native lane is W-5's open door, and it is open to you. `.env.example`
+ships with every public coordinate pre-filled; you supply exactly one thing —
+your own testnet account:
+
+1. Create a Hedera **testnet** account (free, funded by the faucet): portal.hedera.com
+2. `git clone … && npm install && cp .env.example .env`
+3. Fill `PAYER_ID` and `PAYER_DER_KEY` in `.env` with that account. Nothing else.
+4. `npm run stamp:lane-a` (or `npm run stamp:lane-a paint` for the paint-domain trace)
+
+That builds a WHITE trace claim against the live taxonomy (the closed claim
+space — anything else refuses to construct), submits one
+`TopicMessageSubmitTransaction`, and HIP-991 charges the published 0.01 HBAR
+fee atomically with the message. The script then re-verifies your stamp
+keyless off the public mirror, and your tile appears at
+[ontologic.dev/wall](https://ontologic.dev/wall) — rendered deterministically
+from your bindingHash (a duplicate of an existing claim collapses into that
+tile's ×N badge instead; the two domains give visually distinct tiles).
+
+Prefer an agent driving it? Wire `packages/mcp` into your own goose
+(see [packages/mcp/README.md](packages/mcp/README.md)) and ask it to assert
+a WHITE trace and stamp the native lane — for Lane A it only needs
+`requirements → assert_claim → stamp`.
+
+If you'd rather test the *other* door: pay the fee and write whatever bytes
+you like. You'll have bought a consensus timestamp and nothing else — the
+verifier judges it nonconforming at read time, no tile renders (W-10), and
+the operator may lazily attest the rejection under its on-chain mandate.
 
 Built for the Hedera x402 Bounty (July 2026) on the Ontologic v0.8.3 taxonomy — 27 published rules, live topics `0.0.8641938` / `0.0.8641941` / `0.0.8641943`, which this build reads and never writes.

@@ -14,6 +14,7 @@
     "probe:batch": "tsx scripts/probe-batch.ts",
     "create-topics": "tsx scripts/create-topics.ts",
     "peg": "tsx scripts/peg.ts",
+    "stamp:lane-a": "tsx scripts/stamp-lane-a.ts",
     "smoke:lane-a": "tsx scripts/lane-a-smoke.ts",
     "smoke:lane-b": "tsx scripts/lane-b-smoke.ts",
     "smoke:vend": "tsx scripts/vend-smoke.ts",
