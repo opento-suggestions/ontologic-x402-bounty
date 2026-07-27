@@ -21,3 +21,8 @@ Running collection of on-chain evidence (bounty checklist §10: real testnet tra
 | 2026-07-19 | payer-agent account created (distinct from operator) | `0.0.9646033` | https://hashscan.io/testnet/account/0.0.9646033 |
 | 2026-07-19 | redeem: settled x402 receipt 0.0.9646033-1784495988-270588092 → vend(0xfa00a4b3d592139508828675ba73a718013acdc4) | `0xfa00a4b3d592139508828675ba73a718013acdc4` | https://hashscan.io/testnet/transaction/0.0.8641261-1784495994-871461914 |
 | 2026-07-20 | rejection attestation (operator-summoned) for 0.0.9645621 seq 2: unknown schema: undefined | `1784518459.756961931` | https://hashscan.io/testnet/transaction/0.0.8641261-1784518454-120831562 |
+| 2026-07-27 | create ORG root account (ceremony §3.1, W-11 two-key structure) | `0.0.9794226` | https://hashscan.io/testnet/account/0.0.9794226 |
+| 2026-07-27 | create Witness Rule Registry (immutable, submit=root — ceremony §3.2) | `0.0.9794232` | https://hashscan.io/testnet/topic/0.0.9794232 |
+| 2026-07-27 | create Verdict Topic (immutable, submit=operator — ceremony §3.3) | `0.0.9794234` | https://hashscan.io/testnet/topic/0.0.9794234 |
+| 2026-07-27 | publish witness RuleDef witness://org/authority/delegation (ceremony §3.5) | `hcs://0.0.9794232/1785172139.525106079` | https://hashscan.io/testnet/transaction/0.0.9794226-1785172131-382235869 |
+| 2026-07-27 | grant mandate verdict:rejection-attestation → 0.0.8641261, window [1785172219,1787764219) (ceremony §3.5.3) | `0xdf27b03d7be00f2a572aab2dea0b37d194cc48d8c7119e88e382dced662e74d7` | https://hashscan.io/testnet/transaction/0.0.9794226-1785172213-287119241 |

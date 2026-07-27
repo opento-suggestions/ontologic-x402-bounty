@@ -125,11 +125,16 @@ export function checkMandateScope(scope: MandateScope, verdictClass: VerdictClas
   return scope.verdictClass === verdictClass && scope.topicId === topicId;
 }
 
+// Omitted (undefined) → the release anchors. Explicit null → "no anchor",
+// which only tests use to exercise the unconfigured branches; production
+// callers omit the fields and always get the pinned constants.
 function resolveAnchors(options: JudgeOptions) {
   return {
-    witnessRegistryTopicId: options.witnessRegistryTopicId ?? TRUST_ANCHORS.witnessRegistryTopicId,
-    verdictTopicId: options.verdictTopicId ?? TRUST_ANCHORS.verdictTopicId,
-    firstMandateTimestamp: options.firstMandateTimestamp ?? TRUST_ANCHORS.firstMandateTimestamp,
+    witnessRegistryTopicId:
+      options.witnessRegistryTopicId !== undefined ? options.witnessRegistryTopicId : TRUST_ANCHORS.witnessRegistryTopicId,
+    verdictTopicId: options.verdictTopicId !== undefined ? options.verdictTopicId : TRUST_ANCHORS.verdictTopicId,
+    firstMandateTimestamp:
+      options.firstMandateTimestamp !== undefined ? options.firstMandateTimestamp : TRUST_ANCHORS.firstMandateTimestamp,
   };
 }
 

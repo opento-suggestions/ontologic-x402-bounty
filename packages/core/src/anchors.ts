@@ -6,10 +6,9 @@
  * pre-mandate era. They are OFF-CHAIN constants by design: changing them is a
  * verifier-release event, not an on-chain one (declared in LIMITATIONS.md).
  *
- * All null until the Phase 2 ceremony (PHASE_2 §3) creates the entities;
- * pinned to literals immediately after, from the ceremony's mirror read-back.
- * Until pinned, judgeMessage's authority checks run only where a caller
- * supplies the values explicitly (tests, the ceremony scripts themselves).
+ * PINNED 2026-07-27 from the ceremony's mirror read-back (see
+ * docs/verify-log.md, ceremony entry): both topics confirmed
+ * admin_key: null with the intended disjoint submit keys before pinning.
  */
 
 export interface TrustAnchors {
@@ -26,7 +25,7 @@ export interface TrustAnchors {
 }
 
 export const TRUST_ANCHORS: TrustAnchors = Object.freeze({
-  witnessRegistryTopicId: null,
-  verdictTopicId: null,
-  firstMandateTimestamp: null,
+  witnessRegistryTopicId: "0.0.9794232",
+  verdictTopicId: "0.0.9794234",
+  firstMandateTimestamp: "1785172221.348657104",
 });

@@ -11,7 +11,8 @@
  * (§6.5, confirmed 2026-07-25).
  *
  * Idempotent by public state: a rule that already resolves on the registry
- * is refused, not re-published.
+ * is skipped, never re-published — so a partial run (e.g. a read-back that
+ * raced mirror lag) resumes cleanly on the next invocation.
  */
 
 import { TopicMessageSubmitTransaction } from "@hashgraph/sdk";
@@ -39,7 +40,7 @@ async function main() {
       throw new Error(`${draft.ruleId} declares domain ${draft.domain} — witness rules must be witness.* (cross-registry defense).`);
     }
 
-    // Single-shot by public state.
+    // Single-shot by public state: published rules are skipped, not re-published.
     let already = false;
     try {
       await resolveLatestRule(draft.ruleId, registry, { mirrorNodeUrl: net.mirrorNodeUrl });
@@ -48,7 +49,8 @@ async function main() {
       /* not on the registry yet — proceed */
     }
     if (already) {
-      throw new Error(`${draft.ruleId} already resolves on ${registry}. Refusing to double-publish a genesis rule.`);
+      console.log(`  already resolves on ${registry} — skipping (idempotent by public state).`);
+      continue;
     }
 
     // Publish-time fields, then the self-hash. contentHash is computed over
@@ -91,8 +93,11 @@ async function main() {
 
     // Read-back: the rule must round-trip keyless — resolve by ruleId off the
     // public mirror and self-verify (ruleUriHash + contentHash) before we
-    // call it published.
+    // call it published. BOTH messages must be mirror-visible first: the
+    // resolution path needs the registryEntry, not just the ruleDef (learned
+    // live 2026-07-27 — a large ruleDef chunks, and the entry lags it).
     await awaitMirrorMessage(net.mirrorNodeUrl, registry, defConsensus);
+    await awaitMirrorMessage(net.mirrorNodeUrl, registry, consensusString(entryRecord));
     const resolvedUri = await resolveLatestRule(draft.ruleId, registry, { mirrorNodeUrl: net.mirrorNodeUrl });
     if (resolvedUri !== ruleUri) {
       throw new Error(`Read-back mismatch: registry resolves ${draft.ruleId} to ${resolvedUri}, expected ${ruleUri}.`);
