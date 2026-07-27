@@ -36,7 +36,7 @@ export type ReasonCode =
 /** Display templates. Fixed strings only — no interpolation sites, ever. */
 export const REASONS: Record<ReasonCode, string> = Object.freeze({
   "parse.invalid-json": "message is not valid JSON",
-  "schema.missing": "message declares no schema field",
+  "schema.missing": "subject message declares no schema field",
   "schema.unknown": "message schema is not a recognized witness schema",
   "structure.missing-field": "a required proof field is missing or empty",
   "structure.reason-outside-space": "a reasons entry is outside the closed reason space",

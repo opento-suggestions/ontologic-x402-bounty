@@ -15,10 +15,11 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 
-function findEnv(): string | undefined {
-  let dir = process.cwd();
+function findEnvFrom(start: string): string | undefined {
+  let dir = start;
   for (let i = 0; i < 6; i++) {
     const candidate = path.join(dir, ".env");
     if (fs.existsSync(candidate)) return candidate;
@@ -27,6 +28,16 @@ function findEnv(): string | undefined {
     dir = parent;
   }
   return undefined;
+}
+
+/**
+ * cwd first (running from the repo, or an operator override), then this
+ * module's own directory — goose spawns the MCP server with goose's OWN
+ * working directory, so the cwd walk finds nothing and the module-path
+ * fallback (src → mcp → packages → repo root) is what makes boot work.
+ */
+function findEnv(): string | undefined {
+  return findEnvFrom(process.cwd()) ?? findEnvFrom(path.dirname(fileURLToPath(import.meta.url)));
 }
 
 export const envPath = findEnv();

@@ -47,9 +47,13 @@ extensions:
     timeout: 300
 ```
 
-The server reads the repo root `.env` (walks up from its own directory).
-`assertTestnet()` runs before the transport opens — a mainnet URL refuses to
-boot.
+The server reads the repo root `.env`: it walks up from the process cwd
+first, then falls back to walking up from its own module path — so goose can
+spawn it from any working directory. `assertTestnet()` runs before the
+transport opens — a mainnet URL refuses to boot.
+
+Windows note: if goose fails to spawn `npx`, use `cmd: npx.cmd` (or an
+absolute path to it) in the extension config.
 
 ## Smoke
 

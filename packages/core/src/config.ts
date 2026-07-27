@@ -9,11 +9,14 @@
 import dotenv from "dotenv";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 // One .env, one source of truth: the repo root's. Scripts run from nested
-// package dirs too, so walk upward from cwd to the first .env found.
-function findEnv(): string | undefined {
-  let dir = process.cwd();
+// package dirs too, so walk upward from cwd to the first .env found —
+// falling back to this module's own path (src → core → packages → root),
+// because an MCP host like goose spawns the server with the HOST's cwd.
+function findEnvFrom(start: string): string | undefined {
+  let dir = start;
   for (let i = 0; i < 5; i++) {
     const candidate = path.join(dir, ".env");
     if (fs.existsSync(candidate)) return candidate;
@@ -22,6 +25,10 @@ function findEnv(): string | undefined {
     dir = parent;
   }
   return undefined;
+}
+
+function findEnv(): string | undefined {
+  return findEnvFrom(process.cwd()) ?? findEnvFrom(path.dirname(fileURLToPath(import.meta.url)));
 }
 
 dotenv.config({ path: findEnv() });
