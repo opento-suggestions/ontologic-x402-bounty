@@ -18,6 +18,8 @@
     "smoke:lane-a": "tsx scripts/lane-a-smoke.ts",
     "smoke:lane-b": "tsx scripts/lane-b-smoke.ts",
     "smoke:vend": "tsx scripts/vend-smoke.ts",
+    "redeem": "tsx scripts/redeem.ts",
+    "redeem:watch": "tsx scripts/redeem.ts --watch",
     "reject-attest": "tsx scripts/reject-attest.ts",
     "ceremony:root": "tsx scripts/create-root.ts",
     "ceremony:topics": "tsx scripts/create-authority-topics.ts",
