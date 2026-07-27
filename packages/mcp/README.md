@@ -43,13 +43,13 @@ extensions:
     cmd: npx
     args:
       - tsx
-      - C:/The_Fountain/ontologic-x402-bounty/witness-required/packages/mcp/src/index.ts
+      - C:/path/to/ontologic-x402-bounty/witness-required/packages/mcp/src/index.ts
     timeout: 300
 ```
 
 Use FORWARD slashes in the path, even on Windows — goose's config layers
-strip backslashes (observed live: `C:\The_Fountain\…` arrived at Node as
-`C:The_Fountain…`, a drive-relative path resolved against goose's own cwd).
+strip backslashes (observed live: `C:\path\to\…` arrived at Node as
+`C:pathto…`, a drive-relative path resolved against goose's own cwd).
 Node accepts forward slashes on Windows natively. On the desktop app the
 config lives at `%APPDATA%\Block\goose\config\config.yaml`.
 

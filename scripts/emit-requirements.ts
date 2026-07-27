@@ -12,7 +12,11 @@ import { getWitnessConfig, getOperatorConfig } from "../packages/core/src/config
 import { buildPaymentRequirements, PEG } from "./peg.js";
 import { REPO_ROOT, writeJson } from "./lib/ops.js";
 
-const SITE_DIR = "c:/The_Fountain/ontologic/ontologic-dev-main/static/witness";
+// The site lives in a SEPARATE repo (ontologic-dev) whose location is
+// machine-specific — never hardcoded here. ORG sets ONTOLOGIC_DEV_SITE_DIR
+// in .env (e.g. <ontologic-dev checkout>/static/witness); when unset, only
+// the canonical in-repo copy is written and the site copy is skipped.
+const SITE_DIR = process.env.ONTOLOGIC_DEV_SITE_DIR || null;
 
 async function main() {
   const witness = getWitnessConfig();
@@ -42,9 +46,13 @@ async function main() {
   console.log(`wrote ${path.join(REPO_ROOT, "config.witness.json")}`);
 
   // … and the site's (same bytes, W-7).
-  fs.mkdirSync(SITE_DIR, { recursive: true });
-  fs.writeFileSync(path.join(SITE_DIR, "payment-requirements.json"), JSON.stringify(requirements, null, 2) + "\n");
-  console.log(`wrote ${path.join(SITE_DIR, "payment-requirements.json")}`);
+  if (SITE_DIR) {
+    fs.mkdirSync(SITE_DIR, { recursive: true });
+    fs.writeFileSync(path.join(SITE_DIR, "payment-requirements.json"), JSON.stringify(requirements, null, 2) + "\n");
+    console.log(`wrote ${path.join(SITE_DIR, "payment-requirements.json")}`);
+  } else {
+    console.log("site copy skipped — set ONTOLOGIC_DEV_SITE_DIR in .env to also write the site's payment-requirements.json");
+  }
 }
 
 main().catch((err) => {
