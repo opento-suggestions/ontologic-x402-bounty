@@ -44,6 +44,8 @@ Blast radius, amended (W-8): a compromised operator key can slander attempts onl
 
 The vending KEY is a fresh token whose supply key is held by the vending contract from creation. It coexists with the earlier colorimetric K-channel token `0.0.8644153` (v0.8.3 sphere), which is unrelated to payment and remains untouched.
 
+Two supply honesty notes. First, the burn is not atomic with the stamp and cannot be — a stamp is a topic message, no contract executes — so consumed KEY exits supply on the delivery watcher's cadence (every pass burns the treasury's collected balance), not in the stamp's own instant. Second, on 2026-07-27 a since-fixed watcher bug (balance-based instead of count-based idempotency) minted three wKEY without payment; one was consumed and burned, and **two remain in customer wallets** — delivered rights are structurally unconfiscatable, ORG included, so they stand as a disclosed testnet artifact (full record in `docs/verify-log.md`).
+
 ## Lane B payment/stamp coupling (final wording, per V-1b + V-9)
 
 *No stamp without payment* holds unconditionally on both lanes: HIP-991 charges the fee in the same consensus event as the stamp. The converse — *no payment without stamp* — holds on Lane A by construction. On Lane B the x402 exact scheme settles the payment as a plain native transfer **outside** any contract call (the scheme forbids wrapping), so: the **settled transfer is the payment receipt**, and delivery (account genesis + 1 KEY) and the stamp are **redeemable rights**. A payer can transiently hold KEY without a stamp (client crash, wallet hiccup); no funds strand, every right remains redeemable, and the delivery leg itself is one atomic contract call that reverts whole.
