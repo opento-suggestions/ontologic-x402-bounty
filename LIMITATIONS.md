@@ -31,7 +31,7 @@ A reverted vending call refunds the payer's principal but not the network fee th
 
 ## ORG keys — the two-key structure and blast radius
 
-Two ORG-held keys exist, with disjoint powers (W-11; the root is created at the Phase 2 ceremony and its account ID is recorded here then):
+Two ORG-held keys exist, with disjoint powers (W-11; root account `0.0.9794226`, created at the Phase 2 ceremony 2026-07-27):
 
 - **Root** holds the Witness Rule Registry's submit key. It writes mandates, revocations, and the witness-layer RuleDefs. It renders no verdicts and never touches payer testimony.
 - **Operator** holds the Verdict Topic's submit key and the vending contract's admin relationship. It renders failed-attempt verdicts *under a mandate* and never signs payer testimony (W-2).

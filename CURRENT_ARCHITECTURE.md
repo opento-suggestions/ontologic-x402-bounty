@@ -31,9 +31,9 @@ Lane A 0.0.9645621 (0.01 HBAR fee)   Lane B 0.0.9645622 (1 wKEY fee → contract
 | ORG operator | `0.0.8641261` | the ONE ORG key (W-2 carve-out) |
 | payer-agent (demo) | `0.0.9646033` | the agent's funding account, distinct from operator AND root by boot-check |
 | Read-only inputs | RULE_DEFS `0.0.8641938` · RULE_REGISTRY `0.0.8641941` · PROOF `0.0.8641943` | untouched, v0.8.3 sphere |
-| ORG root (Phase 2) | *ceremony §3.1 — ID recorded here after creation* | the SECOND ORG key; registry submit key; writes mandates/revocations/witness rules, never verdicts |
-| Witness Rule Registry (Phase 2) | *ceremony §3.2 — immutable at birth* | submit = root, admin = NONE; witness RuleDefs + mandates + revocations |
-| Verdict Topic (Phase 2) | *ceremony §3.3 — immutable at birth* | submit = operator, admin = NONE, no fee; all ORG rejection attestations from the mandate era on |
+| ORG root (Phase 2) | `0.0.9794226` | the SECOND ORG key; registry submit key; writes mandates/revocations/witness rules, never verdicts |
+| Witness Rule Registry `WITNESS_RULES` | `0.0.9794232` | submit = root, **admin = NONE (immutable at birth, mirror-confirmed)**; witness RuleDefs + mandates + revocations |
+| Verdict Topic `WITNESS_VERDICTS` | `0.0.9794234` | submit = operator, **admin = NONE**, no fee; all ORG rejection attestations from the mandate era (first mandate: `1785172221.348657104`) |
 
 **Repo map:** `packages/core` (the seam — zero Hedera SDK) · `packages/mcp` (the goose plugin — the payer-agent's process) · `packages/contracts` (KEY custody) · `scripts/` (ORG-side testnet operations) · site pages live in the separate `ontologic-dev` repo (`static/witness`, `static/wall`, `netlify/functions/x402.mts`).
 

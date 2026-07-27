@@ -27,7 +27,7 @@ Reads are free and public — mirror-node REST is the canonical read path; the P
 
 ## Judgment is mandated (Phase 2)
 
-Testimony and judgment are separate layers. Anyone can pay a lane's published fee and write (that open door is the point — W-5); ORG's *verdicts* live on a dedicated **Verdict Topic** whose submit key is the operator's, under a revocable **mandate** granted by a distinct ORG root key on the immutable **Witness Rule Registry**. Both authority topics are born without admin keys — permanent by construction — and a keyless reader confirms the whole chain (grant, window, scope, revocation) from public mirror REST alone. Topic IDs are recorded here after the one-shot creation ceremony. See `PHASE_2.md` and [LIMITATIONS.md](LIMITATIONS.md).
+Testimony and judgment are separate layers. Anyone can pay a lane's published fee and write (that open door is the point — W-5); ORG's *verdicts* live on a dedicated **Verdict Topic** (`0.0.9794234`) whose submit key is the operator's, under a revocable **mandate** granted by a distinct ORG root key on the immutable **Witness Rule Registry** (`0.0.9794232`). Both authority topics were born without admin keys — permanent by construction, mirror-confirmed at the 2026-07-27 ceremony — and a keyless reader confirms the whole chain (grant, window, scope, revocation) from public mirror REST alone. The live record already demonstrates both directions: mandated verdicts that pass the full chain, and one deliberate post-revocation verdict the verifier condemns as `mandate.out-of-window`. See `PHASE_2.md` and [LIMITATIONS.md](LIMITATIONS.md).
 
 ## Run
 

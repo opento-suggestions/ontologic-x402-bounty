@@ -20,6 +20,32 @@ Dated findings for the spec's V-series items. Each entry names the design branch
 
 ## Entries
 
+### 2026-07-27 — the Phase 2 ceremony (primary record)
+
+Executed in one sitting, steward-confirmed in-turn, every write gated on a mirror read-back. All entities testnet; all reads keyless.
+
+| Entity / event | Value |
+|---|---|
+| ORG root account | `0.0.9794226` (operator-funded; key mirror-confirmed distinct from operator) |
+| Witness Rule Registry `WITNESS_RULES` | `0.0.9794232` — submit = root, **admin_key null** (verifyAnchors ✓) |
+| Verdict Topic `WITNESS_VERDICTS` | `0.0.9794234` — submit = operator, **admin_key null** (verifyAnchors ✓) |
+| Conformance rule | `witness://org/verdict/lane-conformance` → `hcs://0.0.9794232/1785171951.953336104` (3 HCS chunks; resolves + self-verifies keyless) |
+| Delegation rule | `witness://org/authority/delegation` → `hcs://0.0.9794232/1785172139.525106079` |
+| Mandate M1 | `0xdf27b03d…662e74d7`, window `[1785172219, 1787764219)` — **the first mandate: pre-mandate era ends `1785172221.348657104`** (pinned as an anchor) |
+| Mandated verdict #1 | Verdict Topic seq 1 @ `1785172454.501234104`, subject Lane A seq 2, reasons `["schema.missing"]` — read-back passed the full W-11 chain |
+| Revocation of M1 | @ `1785172504.561116104`; reject-attest then **refused** to render (own-mandate gate) |
+| Unauthorized artifact (deliberate) | Verdict Topic seq 2 @ `1785172607.765035104`, cites revoked M1 — keyless verifier condemns it: `invalid` + `mandate.out-of-window`. The W-11 negative-space demo, permanent by design; wall counts it "1 unauthorized" |
+| Mandate M2 | `0x93dce459…85510ba1`, fresh nonce, window `[1785172643, 1787764643)` — the operational grant |
+| Mandated verdict #2 | Verdict Topic seq 3 @ `1785172680.376116760`, subject Lane A seq 3, under M2 |
+
+**Anchors pinned** (commits `a1bae50` core, `ee91bf9` wall) — the verifier-release event. Suite 58/58 after pinning; canonicalize + golden unmodified through the entire phase.
+
+**Two operational findings, learned live:**
+1. **A large ruleDef chunks (3 × 1024B) and the registry entry lags it on mirror** — the publish script's read-back originally awaited only the ruleDef's timestamp and raced the entry; fixed by awaiting both messages and making publication skip-if-already-resolvable (idempotent by public state). The on-chain state was never wrong; `fetchMessageAtTimestamp`'s bounded bidirectional chunk reassembly resolved the chunked rule correctly on first try.
+2. **Pinning the anchors changed `??` semantics in `resolveAnchors`** — an explicit `null` (test-only "no anchor configured") began falling through to the pinned constants; one offline test caught it. Now `undefined` = release anchors, explicit `null` = unconfigured (tests only).
+
+Headless wall validation after pinning: 12 messages judged → 2 tiles (×4, ×2) · 3 rejections (1 pre-mandate legacy with fixed label + 2 mandated v0.2 rendering their codes) · 3 invalid, of which 1 unauthorized · 2 mandates, 1 revocation, 2 lineage roots with 1 child each.
+
 ### 2026-07-24 — V-10 / V-11 (Phase 2 falsifiers) — primary records
 
 ### V-10 — Can a keyless verifier bind a topic message to an ORG account from mirror REST alone?
