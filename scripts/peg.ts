@@ -11,7 +11,7 @@
  * margin ($0.001); at-cost is the network fee the payer already pays the
  * network. Total = at-cost + margin, and ORG's take is the margin, visibly.
  * Lane B (premium): fee is exactly 1 KEY (W-4) — the entire premium lives in
- * the $0.01 USDC vending price (D-2), never in the fee amount.
+ * the vending price (D-2 as amended), never in the fee amount.
  */
 
 export const PEG = {
@@ -25,11 +25,40 @@ export const PEG = {
     feeKey: 1, // W-4: 1 KEY = 1 stamp, burned on execution
   },
   vending: {
-    priceUsd: 0.01, // D-2, closed — the entire premium, in exactly one place
-    priceUsdcSmallest: 10_000, // 6 decimals
+    // D-2 as amended 2026-07-27 (steward-directed reprice): the original
+    // $0.01 was upside-down at the peg — vend() FORWARDS fundHbar (3 HBAR =
+    // $0.30 notional) to the newborn, so every sale delivered ~30× its
+    // receipt. The price now covers what delivery costs, itemized below with
+    // the margin visible — the same at-cost + margin honesty as Lane A (W-5).
+    priceUsd: 0.5, // D-2 (amended) — the entire premium, in exactly one place
+    priceUsdcSmallest: 500_000, // 6 decimals
     usdcTokenId: "0.0.429274", // Circle testnet USDC, confirmed on mirror 2026-07-19
+    fundHbar: 3, // forwarded to the newborn inside vend() — the delivery's principal (redeem.ts msg.value)
+    costUsdNotional: {
+      funding: 0.3, // fundHbar at the peg — what the newborn receives
+      deliveryNetwork: 0.15, // vend() gas + burn cadence, amortized allowance
+      margin: 0.05, // ORG's take, visibly
+    },
+    // Price eras: a receipt is matched at the price in force at its OWN
+    // consensus instant, so pre-reprice receipts stay countable and the
+    // watcher's receipts-vs-deliveries netting never misreads a paid-in-full
+    // old receipt (or denies a repeat customer their next delivery).
+    priceEras: [
+      { sinceConsensusSecond: 0, priceUsd: 0.01 },
+      { sinceConsensusSecond: 1_785_187_000, priceUsd: 0.5 }, // reprice, 2026-07-27
+    ],
   },
 } as const;
+
+/** Vending price in tinybar in force at a consensus timestamp ("ssss.nnnnnnnnn"). */
+export function vendPriceTinybarAt(consensusTimestamp: string): number {
+  const second = Number(consensusTimestamp.split(".")[0]);
+  let priceUsd: number = PEG.vending.priceEras[0].priceUsd;
+  for (const era of PEG.vending.priceEras) {
+    if (second >= era.sinceConsensusSecond) priceUsd = era.priceUsd;
+  }
+  return Math.round((priceUsd / PEG.hbarUsd) * 1e8);
+}
 
 interface WitnessEntities {
   hbarTopicId: string | null;
@@ -59,6 +88,9 @@ export function buildPaymentRequirements(entities: WitnessEntities) {
       },
     },
     vending: {
+      priceUsd: PEG.vending.priceUsd,
+      costUsdNotional: PEG.vending.costUsdNotional,
+      note: "Price = funding the newborn receives + delivery network allowance + visible margin (D-2 as amended 2026-07-27). The vend forwards 3 HBAR to the testimony account it creates; the price covers what it delivers.",
       accepts: [
         {
           scheme: "exact",

@@ -115,6 +115,23 @@ The type-level W-10 defense ("no field that could carry the attempt's payload") 
 
 **Residue, disclosed.** Of the 3 remaining wKEYs, 1 is receipt-backed (`0.0.9794612`, unspent) and **2 are artifacts of the bug** (`0.0.9646091`, `0.0.9794951`) — delivered without payment, structurally unconfiscatable (burnToken burns from treasury only; ORG cannot touch customer holdings). Accepted as a testnet artifact; disclosed in LIMITATIONS.md.
 
+### 2026-07-27 — the vending price was upside-down (D-2 amended: $0.01 → $0.50)
+
+**Finding (steward-noticed).** The $0.01 vending price predated the FUND_HBAR = 3 decision: at the peg ($0.10/HBAR notional), a Lane B customer paid 0.1 HBAR and the vend forwarded **3 HBAR** to the newborn — every sale delivered ~30× its receipt, ORG's pocket covering the difference. Harmless on faucet-fed testnet; wrong as the pricing story the peg is supposed to stand in for.
+
+**Fix.** D-2 amended to **$0.50 USDC fixed**, itemized in `peg.ts` with Lane A's at-cost + visible-margin structure: funding $0.30 (the 3 HBAR the newborn receives) + delivery network allowance $0.15 (vend gas + burn cadence, amortized) + margin $0.05. `fundHbar` moved into the peg so the price and the funding it must cover live in the one price authority (W-7). No on-chain change — the vending price is off-chain (requirements JSON + pay tool + receipt matching); the topic fees are untouched.
+
+**Reprice must not orphan history.** Receipt matching is now era-aware (`priceEras`, boundary consensus second `1785187000`): a receipt is judged at the price in force at its OWN consensus instant. Without this, the count-based netting would have dropped every pre-reprice receipt from receipts-ever while deliveries-ever kept counting — silently denying repeat customers their next delivery. Validated dry-run against the live ledger post-change: all 6 historical receipts still counted, every alias nets to nothing owed, byte-identical to the pre-change pass.
+
+### 2026-07-27 — USDC lane scouted (live probes, public APIs)
+
+Question: can a tester actually acquire the Circle testnet USDC (`0.0.429274`) our published requirements name, and is SaucerSwap's testnet the way to do it?
+
+- **`0.0.429274` verified live on mirror:** "USD Coin" / USDC, 6 decimals, memo "USDC HBAR", treasury `0.0.5176`, Circle-held admin/freeze/supply keys, actively circulating. Matches the V-1 desk study.
+- **SaucerSwap testnet does NOT list `0.0.429274`.** Its token list (`test-api.saucerswap.finance/tokens`, 576 tokens) carries several USDC-symbol tokens; the one in top pools as "USD Coin" is **`0.0.5449`** — a different token. A SaucerSwap testnet swap therefore yields the *wrong* USDC for the x402 requirements. SaucerSwap remains what the spec always said it was: the post-MVP universal-inlet bolt-on, not an acquisition path for the spec asset.
+- **Circle's own faucet is the path:** faucet.circle.com lists **"Hedera Testnet"** as a selectable network and drips **20 USDC** of `0.0.429274` per request (observed live: distributor `0.0.11920` → fresh account, 20,000,000 units, consensus `1785167624`). Recipient must be associated with the token first (or hold open auto-association slots).
+- **Wiring consequence (not yet built):** accepting the USDC leg needs (1) treasury association with `0.0.429274`, (2) a token-transfer branch in the pay tool (`addTokenTransfer` instead of HBAR), (3) `redeem.ts` matching `token_transfers` credits alongside HBAR ones. The USDC requirements entry is already published; notably, a USDC receipt needs **no peg at all** — the price is natively USD, so the one "demo semantics" disclosure vanishes on that leg.
+
 ### 2026-07-24 — facilitator contradiction resolved (direct mode is ground truth)
 
 The affidavit and the architecture doc briefly disagreed about the facilitator: LIMITATIONS.md carried the V-1 entry's forward-looking sentence ("ORG runs this for the demo") while CURRENT_ARCHITECTURE §9.7 said self-hosted facilitator deployment was not built and direct mode is the demo default. Ground truth, determined from the code:

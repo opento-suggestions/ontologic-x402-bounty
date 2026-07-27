@@ -49,7 +49,7 @@ export async function handlePay(aliasArg?: string): Promise<ToolResult> {
   }
 
   const treasury = process.env.OPERATOR_ID ?? getOperatorConfig().id;
-  const amountTinybar = Math.round((PEG.vending.priceUsd / PEG.hbarUsd) * 1e8); // $0.01 at the peg
+  const amountTinybar = Math.round((PEG.vending.priceUsd / PEG.hbarUsd) * 1e8); // current vending price at the peg (peg.ts, D-2 as amended)
   const payerKey = PrivateKey.fromStringDer(payer.derKey);
 
   const requirements = {

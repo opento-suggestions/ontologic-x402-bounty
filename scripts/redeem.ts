@@ -33,14 +33,12 @@
 import { ContractExecuteTransaction, ContractFunctionParameters, Hbar } from "@hashgraph/sdk";
 import { getNetworkConfig, getWitnessConfig } from "../packages/core/src/config.js";
 import { appendEvidence, hashscanTx, openOperatorClient } from "./lib/ops.js";
-import { PEG } from "./peg.js";
+import { PEG, vendPriceTinybarAt } from "./peg.js";
 
 const MEMO_PREFIX = "x402:witness-required:vend:";
-// Enough for the newborn's own stamp (network fee ~0.75 HBAR at the testnet
-// rate + the 0.01 custom fee) with headroom; testnet HBAR is tight.
-const FUND_HBAR = 3;
 
 interface MirrorTx {
+  consensus_timestamp: string;
   memo_base64?: string;
   result: string;
   transfers?: { account: string; amount: number }[];
@@ -48,7 +46,6 @@ interface MirrorTx {
 }
 
 async function findSettledVends(mirrorUrl: string, treasury: string): Promise<{ alias: string; txId: string }[]> {
-  const amount = Math.round((PEG.vending.priceUsd / PEG.hbarUsd) * 1e8);
   const found: { alias: string; txId: string }[] = [];
   // Paginate a few pages so receipt COUNTS stay accurate as history grows.
   // An undercounted receipt (beyond the window) can only cause a skip.
@@ -61,6 +58,10 @@ async function findSettledVends(mirrorUrl: string, treasury: string): Promise<{ 
       if (tx.result !== "SUCCESS" || !tx.memo_base64) continue;
       const memo = Buffer.from(tx.memo_base64, "base64").toString("utf8");
       if (!memo.startsWith(MEMO_PREFIX)) continue;
+      // A receipt is judged at the price in force at ITS OWN consensus
+      // instant (peg.ts priceEras) — a reprice must not orphan history, or
+      // the receipts-vs-deliveries netting would misread every old receipt.
+      const amount = vendPriceTinybarAt(tx.consensus_timestamp);
       const credited = tx.transfers?.some((t) => t.account === treasury && t.amount >= amount);
       if (!credited) continue;
       found.push({ alias: memo.slice(MEMO_PREFIX.length).toLowerCase(), txId: tx.transaction_id });
@@ -159,7 +160,9 @@ async function main() {
           .setContractId(witness.vendingContractId!)
           .setFunction("vend", new ContractFunctionParameters().addAddress(alias))
           .setGas(3_000_000)
-          .setPayableAmount(new Hbar(FUND_HBAR))
+          // The delivery's principal — funded from the vending price, which
+          // covers it since the 2026-07-27 reprice (see peg.ts costUsdNotional).
+          .setPayableAmount(new Hbar(PEG.vending.fundHbar))
           .execute(client);
         await vendTx.getReceipt(client);
         const link = hashscanTx(vendTx.transactionId.toString());

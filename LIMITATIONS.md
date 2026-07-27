@@ -25,6 +25,10 @@ The premium lane prices convenience, and remains honest only because the cheap n
 
 Prices are manually pegged for the MVP: testnet HBAR notionally at $0.10. Testnet HBAR is faucet-free, so the peg is *demo semantics* — a stand-in for the mainnet pricing story, stated plainly rather than implied.
 
+## The vending price was upside-down, and was repriced (D-2 amended 2026-07-27)
+
+The original $0.01 vending price predated the decision to fund newborns with 3 HBAR ($0.30 notional at the peg): every Lane B sale delivered roughly thirty times its receipt. Harmless on faucet-fed testnet, dishonest as a pricing story. The steward amended D-2 to **$0.50 USDC**, itemized in `scripts/peg.ts` with the same at-cost + visible-margin structure as Lane A: funding $0.30 + delivery network allowance $0.15 + margin $0.05. Receipts settled before the reprice are honored at their own era's price (`priceEras`) — a reprice must never orphan history or deny a repeat customer their delivery count.
+
 ## Refund minus network fee
 
 A reverted vending call refunds the payer's principal but not the network fee the failed transaction itself incurred. *[Exact observed revert behavior recorded after Phase 3 testnet smokes.]*

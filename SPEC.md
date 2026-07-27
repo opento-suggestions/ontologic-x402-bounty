@@ -91,7 +91,7 @@ Namespaced W- to avoid collision with the Coprocessor spec's I-series.
 - **Spam/griefing (attestation-side)** — dissolved by lazy attestation (§3.4): no auto-emitting fail-writer exists to drain. The operator renders failed verdicts manually, at ORG's discretion and expense.
 - **Malformed morpheme hand-crafted directly to a topic** — they paid the fee for a consensus timestamp. Verifier marks it invalid at read-time; no tile renders (W-10); durable rejection only by operator-summoned lazy attestation. We reject it; we don't pollinate their payload.
 - **Operator key compromise** — attacker can slander attempts (false rejection attestations), cannot forge witnesses. Bounded, disclosed in W-8.
-- **Fee drift** — resolved by fixed manual peg (D-1/D-2): HBAR native lane at at-cost + $0.001 minimum margin; vending at $0.01 USDC fixed. Testnet peg is demo semantics (W-8). The retained fee schedule key remains the re-peg lever; payers' max-fee protection means a re-peg cannot ambush anyone.
+- **Fee drift** — resolved by fixed manual peg (D-1/D-2): HBAR native lane at at-cost + $0.001 minimum margin; vending at $0.50 USDC fixed (D-2 as amended 2026-07-27). Testnet peg is demo semantics (W-8). The retained fee schedule key remains the re-peg lever; payers' max-fee protection means a re-peg cannot ambush anyone.
 - **Mirror REST lag** — the money shot depends on seconds-scale propagation; fallback is HashScan direct. Verify latency (V-7).
 - **WalletConnect session failure (human lane)** — retry UX; non-blocking for the agent demo.
 - **Newborn-account edges (Lane B)** — token association for receiving KEY (HIP-904 auto-association expected to cover; verify V-3), and the funding transfer must include HBAR for the account's own base fees.
@@ -101,7 +101,7 @@ Namespaced W- to avoid collision with the Coprocessor spec's I-series.
 ## 6. Tokenomics — decided
 
 - **D-1 (closed):** native lane minimum margin = **$0.001**. Can't lose money; makes at least a fraction. HBAR-denominated, slightly above at-cost.
-- **D-2 (closed):** vending price = **$0.01 USDC, fixed**. The entire premium, carried in exactly one place (W-4).
+- **D-2 (closed; amended 2026-07-27):** vending price = **$0.50 USDC, fixed**. The entire premium, carried in exactly one place (W-4). Originally $0.01 — repriced by the steward when the funding asymmetry surfaced: vend() forwards 3 HBAR ($0.30 notional at the peg) to the newborn it creates, so the original price delivered ~30× its receipt. The amended price is itemized at-cost + visible margin in `scripts/peg.ts` (funding $0.30 + delivery network allowance $0.15 + margin $0.05); pre-reprice receipts are honored at their own era's price (`priceEras`).
 - **D-3 (closed):** **KEY is consumed by the contract — burned per-execution.** Sink, not reserve. Self-executing neutrality: no treasury position to steward, no KEY pile to question, nobody misuses a token that no longer exists.
 - **Peg (closed):** manual fixed peg for MVP; testnet HBAR notionally $0.10. Demo semantics, disclosed (W-8). HBAR priced slightly above at-cost for the native lane; USDC carries the premium on the vending side.
 - LARI/SaucerSwap universal inlet (any LP'd token → USDC/HBAR → KEY) remains a post-MVP bolt-on tier, not a foundation change.
@@ -160,7 +160,7 @@ Priority order: **V-1/V-5 and V-9 first** — they are the only items that can f
 | ID | Status | Resolution |
 |----|--------|-----------|
 | D-1 | **Closed** | Native minimum margin: $0.001 |
-| D-2 | **Closed** | Vending price: $0.01 USDC fixed |
+| D-2 | **Closed** (amended 2026-07-27) | Vending price: $0.50 USDC fixed (was $0.01; repriced to cover the 3 HBAR the vend delivers) |
 | D-3 | **Closed** | KEY burned per-execution (sink, not reserve) |
 | D-4 | **Closed** | Invalid attempts render no tile; only operator-summoned attestations render (W-10) |
 | D-5 | **Open** | Repo home: `opento-suggestions` org vs. new ORG org — gates repo creation |

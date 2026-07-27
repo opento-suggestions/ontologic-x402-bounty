@@ -41,3 +41,5 @@ Running collection of on-chain evidence (bounty checklist §10: real testnet tra
 | 2026-07-27 | courtesy transfer: 10 HBAR to repeat customer 0.0.9795879 | `0.0.9795879` | https://hashscan.io/testnet/transaction/0.0.8641261-1785182683-291945793 |
 | 2026-07-27 | redeem: settled x402 receipt 0.0.9646033-1785181494-383608567 → vend(0x7014b9581911fa2ed098dbfc0f1e615828dd4d07) | `0x7014b9581911fa2ed098dbfc0f1e615828dd4d07` | https://hashscan.io/testnet/transaction/0.0.8641261-1785182846-170425469 |
 | 2026-07-27 | burnCollected(5) — Lane B fee sink executed (D-3) | `0.0.9645864` | https://hashscan.io/testnet/transaction/0.0.8641261-1785184757-432588566 |
+| 2026-07-27 | redeem: settled x402 receipt 0.0.9646033-1785185914-017790030 → vend(0xa12eae3413f40b6d641a4d7d59c3bb695a674b3a) | `0xa12eae3413f40b6d641a4d7d59c3bb695a674b3a` | https://hashscan.io/testnet/transaction/0.0.8641261-1785185926-556533593 |
+| 2026-07-27 | burnCollected(1) — Lane B fee sink executed (D-3) | `0.0.9645864` | https://hashscan.io/testnet/transaction/0.0.8641261-1785185940-213691640 |

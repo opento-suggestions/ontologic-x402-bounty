@@ -16,9 +16,25 @@
       "feeKey": 1
     },
     "vending": {
-      "priceUsd": 0.01,
-      "priceUsdcSmallest": 10000,
-      "usdcTokenId": "0.0.429274"
+      "priceUsd": 0.5,
+      "priceUsdcSmallest": 500000,
+      "usdcTokenId": "0.0.429274",
+      "fundHbar": 3,
+      "costUsdNotional": {
+        "funding": 0.3,
+        "deliveryNetwork": 0.15,
+        "margin": 0.05
+      },
+      "priceEras": [
+        {
+          "sinceConsensusSecond": 0,
+          "priceUsd": 0.01
+        },
+        {
+          "sinceConsensusSecond": 1785187000,
+          "priceUsd": 0.5
+        }
+      ]
     }
   },
   "requirements": {
@@ -51,11 +67,18 @@
       }
     },
     "vending": {
+      "priceUsd": 0.5,
+      "costUsdNotional": {
+        "funding": 0.3,
+        "deliveryNetwork": 0.15,
+        "margin": 0.05
+      },
+      "note": "Price = funding the newborn receives + delivery network allowance + visible margin (D-2 as amended 2026-07-27). The vend forwards 3 HBAR to the testimony account it creates; the price covers what it delivers.",
       "accepts": [
         {
           "scheme": "exact",
           "network": "hedera:testnet",
-          "amount": "10000",
+          "amount": "500000",
           "asset": "0.0.429274",
           "payTo": "0.0.8641261",
           "maxTimeoutSeconds": 180,
@@ -64,7 +87,7 @@
         {
           "scheme": "exact",
           "network": "hedera:testnet",
-          "amount": "10000000",
+          "amount": "500000000",
           "asset": "0.0.0",
           "payTo": "0.0.8641261",
           "maxTimeoutSeconds": 180,
