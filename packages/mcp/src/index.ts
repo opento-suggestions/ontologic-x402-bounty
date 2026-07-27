@@ -59,9 +59,17 @@ server.tool(
   "witness_assert_claim",
   "Assert a reasoning claim: a trace proof of WHITE over the live Ontologic taxonomy. " +
     "The claim space is closed (W-9): only 'light' and 'paint' WHITE traces construct; anything else refuses. " +
-    "Validation is client-side — invalid claims never submit.",
+    "Validation is client-side — invalid claims never submit. " +
+    "CAUTION — the taxonomy names invert color-model intuition: the LIGHT rule is 'white-from-cmy' " +
+    "(additive; RGB mixes yield the CMY secondary evidence) and the PAINT rule's evidence is named " +
+    "BLUE/GREEN/RED. Map the USER'S color model to the domain, not to the rule names.",
   {
-    domain: z.enum(["light", "paint"]).describe("Proof domain: WHITE in light (additive) or paint (subtractive)"),
+    domain: z
+      .enum(["light", "paint"])
+      .describe(
+        "light = ADDITIVE (RGB light / screens): WHITE traced through the CMY secondaries that RGB mixes produce — pick for RGB/light/additive language. " +
+          "paint = SUBTRACTIVE (CMY pigment / print): WHITE traced through BLUE/GREEN/RED from CMY paint mixes — pick for CMY/pigment/subtractive language.",
+      ),
   },
   async ({ domain }) => handleAssertClaim(domain),
 );
@@ -103,7 +111,13 @@ server.tool(
     "at the published price — a re-peg cannot ambush you.",
   {
     lane: z.enum(["A", "B"]).describe("A = native/discounted (HBAR fee), B = premium/genesis (wKEY fee)"),
-    domain: z.enum(["light", "paint"]).describe("Which WHITE trace to stamp"),
+    domain: z
+      .enum(["light", "paint"])
+      .describe(
+        "Which WHITE trace to stamp — MUST match the domain the user meant, same mapping as witness_assert_claim: " +
+          "light = ADDITIVE/RGB (rule white-from-cmy — yes, the name inverts), paint = SUBTRACTIVE/CMY pigment. " +
+          "Identical domain → identical bindingHash → the wall collapses duplicates into one ×N tile (W-6, by design).",
+      ),
     status: z
       .enum(["declared", "missing", "vague", "blurred", "stale", "timed-out", "withheld"])
       .optional()

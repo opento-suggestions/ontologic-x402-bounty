@@ -7,7 +7,7 @@
  */
 
 import { getNetworkConfig, getSphereConfig } from "../../../core/src/config.js";
-import { buildWhiteTraceClaim, allowedClaims, type WhiteTraceDomain } from "../../../core/src/claims.js";
+import { buildWhiteTraceClaim, allowedClaims, describeClaim, type WhiteTraceDomain } from "../../../core/src/claims.js";
 import { ok, fail, type ToolResult } from "../channels.js";
 
 export async function handleAssertClaim(domain: string): Promise<ToolResult> {
@@ -24,10 +24,13 @@ export async function handleAssertClaim(domain: string): Promise<ToolResult> {
       {
         claimConstructed: true,
         domain: claim.domain,
+        // Echoed so a mismatch between the user's color-model language and
+        // the chosen domain is visible BEFORE anything is paid or stamped.
+        claimIdentity: describeClaim(claim.domain),
         ruleId: claim.ruleId,
         ruleUri: claim.ruleUri,
         bindingHash: claim.bindingHash,
-        next: "witness_requirements → pay (Lane B) or stamp directly (Lane A, native)",
+        next: "confirm claimIdentity matches what the user meant, then witness_requirements → pay (Lane B) or stamp directly (Lane A, native)",
       },
       { claim: claim as unknown as Record<string, unknown> },
     );

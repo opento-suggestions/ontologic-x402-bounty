@@ -23,7 +23,7 @@ import {
 } from "@hashgraph/sdk";
 import { canonicalizeJSON } from "../../../core/src/morpheme.js";
 import { getNetworkConfig, getSphereConfig, getWitnessConfig } from "../../../core/src/config.js";
-import { buildWhiteTraceClaim, buildStampForClaim, type WhiteTraceDomain } from "../../../core/src/claims.js";
+import { buildWhiteTraceClaim, buildStampForClaim, describeClaim, type WhiteTraceDomain } from "../../../core/src/claims.js";
 import type { StatusValue } from "../../../core/src/schema.js";
 import { getPayerConfig } from "../env.js";
 import { latestNewborn, newbornKey } from "../state/keystore.js";
@@ -108,6 +108,7 @@ export async function handleStamp(
       {
         stamped: true,
         lane,
+        claimIdentity: describeClaim(claim.domain),
         signer: signerId,
         topicId,
         consensusTimestamp: consensus,

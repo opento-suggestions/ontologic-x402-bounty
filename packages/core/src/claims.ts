@@ -69,8 +69,20 @@ const CLAIMS: Record<WhiteTraceDomain, ClaimTemplate> = {
   },
 };
 
+/**
+ * Human/agent-legible identity of each claim in the closed space. The
+ * taxonomy's rule names invert color-model intuition (the LIGHT rule is
+ * "white-from-cmy"; the PAINT evidence is BLUE/GREEN/RED), so every surface
+ * that helps a caller CHOOSE speaks color-model language explicitly.
+ */
+export function describeClaim(domain: WhiteTraceDomain): string {
+  return domain === "light"
+    ? "WHITE in the ADDITIVE light domain (RGB light / screens) — evidence: the YELLOW/CYAN/MAGENTA secondaries produced by RGB mixes (rule sphere://demo/entity/white-from-cmy)"
+    : "WHITE in the SUBTRACTIVE paint domain (CMY pigment / print) — evidence: the BLUE/GREEN/RED entities produced by CMY paint mixes (rule sphere://demo/entity/white-from-paint)";
+}
+
 export function allowedClaims(): string[] {
-  return Object.entries(CLAIMS).map(([domain, t]) => `WHITE trace (${domain}): ${t.ruleRef}`);
+  return (Object.keys(CLAIMS) as WhiteTraceDomain[]).map((domain) => `${domain}: ${describeClaim(domain)}`);
 }
 
 // ─── Claim construction ───
