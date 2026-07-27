@@ -43,7 +43,7 @@ extensions:
     cmd: npx
     args:
       - tsx
-      - C:/path/to/ontologic-x402-bounty/witness-required/packages/mcp/src/index.ts
+      - C:/path/to/your-clone/packages/mcp/src/index.ts
     timeout: 300
 ```
 
