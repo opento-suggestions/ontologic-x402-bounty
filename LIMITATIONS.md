@@ -77,6 +77,22 @@ What cannot be closed retroactively: the one attestation stamped before the fix 
 - **Verdicts are now near-free for ORG to write.** The Verdict Topic carries no fee. D-6 is not reopened — laziness was always the defense, not the fee — but the discipline is now purely procedural rather than economic: nothing auto-emits, verdicts are summoned manually, and the attest script refuses to run out-of-mandate.
 - **The pre-mandate attestation stands.** The one rejection attestation rendered before the first mandate (Lane A seq 7) is history: judged as it always was, never retroactively condemned, and rendered with a fixed legacy label rather than its pre-closed-space reason string.
 
-## The x402 payer needs a funded account
+## The x402 payer needs a funded account (the "no account" claim, scoped)
 
-Under the exact scheme the payer signs a debit from an existing funded account. A truly account-less agent cannot pay on Hedera rails directly; what Lane B's vend delivers is the genesis of the fresh **testimony account** (the key that signs the witness), funded and KEY-bearing, from the payment the agent's funding account settled. "This agent did not exist on Hedera ninety seconds ago" is true of the account that signs the stamp.
+Under the exact scheme the payer signs a debit from an existing funded account.
+A truly account-less agent cannot pay on Hedera rails directly — that is a
+property of native settlement, not a defect of this build. What Lane B
+actually promises is narrower, and true: the **agent** needs no account and
+shares no keys. The agent generates its keypair off-chain; any funded
+account — the agent's principal, a sponsor — settles the published terms, and
+the vend delivers the genesis of the fresh **testimony account** from that
+payment. The payer never holds the agent's key; the agent never touches the
+payer's. "This agent did not exist on Hedera ninety seconds ago" is true of
+the account that signs the stamp.
+
+The original scope reached further: cross-chain x402 settlement — USDC
+received on the standard's other supported rails (EVM chains, Solana,
+Stellar), redeemed into Hedera delivery. That is **not built**. The seam for it exists by
+construction: Design constraints forced settlement and delivery apart into a receipt and a
+redeemable right, and the redemption watcher verifies receipts... so nothing in
+the redemption model cares which chain a future receipt type settles on.
