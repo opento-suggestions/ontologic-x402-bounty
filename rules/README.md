@@ -1,13 +1,19 @@
 # rules/ — the witness-layer RuleDefs
 
-**STATUS: DRAFT — steward ratification required before the ceremony (PHASE_2 §6.1 / §6.1a).**
-Nothing here has been published. These two files are the exact intended content of the
-first two messages on the Witness Rule Registry, and the first message on an immutable
-topic is not a place to improvise: read every line before the ceremony.
+**STATUS: PUBLISHED — ceremony executed 2026-07-27. These files are the source-of-record.**
 
-Both rules block the ceremony, not one (§6.1a). The registry cannot be created-and-populated
-until both are ratified, because the first grant (`mandate-morpheme`) needs the delegation
-rule's `ruleUri`, and the first mandated verdict needs the conformance rule's.
+Both rules are live on the Witness Rule Registry (`0.0.9794232`, submit key = root, admin key null forever):
+
+| Rule | ruleId | Live ruleUri |
+|------|--------|--------------|
+| Lane conformance | `witness://org/verdict/lane-conformance` | `hcs://0.0.9794232/1785171951.953336104` (3 chunks) |
+| Delegation | `witness://org/authority/delegation` | `hcs://0.0.9794232/1785172139.525106079` |
+
+The files here are the exact steward-ratified content those messages carry (minus the
+publish-time fields below, which `publish-witness-rules.ts` filled at the ceremony).
+Editing them changes nothing on-chain — a change would be a **new version** published
+through the same script, which is idempotent by public state: a ruleId that already
+resolves on the registry is skipped, never re-published.
 
 ## Shape
 
@@ -20,20 +26,12 @@ so `resolveRuleDef` works unchanged. Witness rules are distinguished structurall
 - `engineType: "read-time-verifier"` — these rules are executed by every reader's
   verifier, not by an EVM engine; there is no functionSelector to call
 
-## Publish-time fields (filled by `publish-witness-rules.ts`, never hand-edited)
+## Publish-time fields (filled by `publish-witness-rules.ts` at the ceremony, never hand-edited)
 
-- `author` — the ROOT account ID (exists only after ceremony §3.1)
+- `author` — the ROOT account ID (`0.0.9794226`)
 - `createdAt` — publish instant
 - `contentHash` — `keccak256(canonicalizeJSON(ruleDef minus ruleUri/ruleUriHash/contentHash))`,
   computed through the seam's `computeContentHash`; makes the RuleDef self-hashing
 - the follow-up `ruleRegistryEntry` message — `ruleUri` (`hcs://<registry>/<consensus ts>`)
   and `ruleUriHash` (sha256 of that URI), the same two-message pattern the colour sphere uses,
   on the ONE witness topic (§6.5, confirmed 2026-07-25)
-
-## Ratification checklist (steward)
-
-- [ ] `witness-lane-conformance.draft.json` — predicates match `judgeMessage`'s real check
-      order; each failure names its `ReasonCode`; the success clause says the stamp is the verdict
-- [ ] `witness-delegation.draft.json` — carries the three Addendum A constraints (§3.5)
-      verbatim in force; grant-validity predicates match `verify.ts`'s W-11 chain
-- [ ] rule ids / versions / descriptions read as ORG wants them permanently recorded

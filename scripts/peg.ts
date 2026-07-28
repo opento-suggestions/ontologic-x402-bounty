@@ -71,6 +71,7 @@ interface WitnessEntities {
 export function buildPaymentRequirements(entities: WitnessEntities) {
   return {
     generatedBy: "scripts/peg.ts — the single price authority; do not hand-edit",
+    spec: "https://github.com/opento-suggestions/ontologic-x402-bounty/blob/main/SPEC.md",
     peg: { hbarUsd: PEG.hbarUsd, semantics: "manual fixed peg, testnet demo (see LIMITATIONS.md)" },
     lanes: {
       laneA: {
@@ -78,19 +79,19 @@ export function buildPaymentRequirements(entities: WitnessEntities) {
         topicId: entities.hbarTopicId,
         fee: { amount: String(PEG.laneA.feeTinybar), asset: "0.0.0", denomination: "tinybar" },
         feeUsdNotional: PEG.laneA.marginUsd,
-        note: "HIP-991 fixed fee charged atomically as the stamp records. At-cost network fee is paid separately to the network; this fee is ORG's published minimum margin (W-5).",
+        note: "HIP-991 fixed fee charged atomically as the stamp records. The at-cost network fee is paid separately to the network; this fee is ORG's published minimum margin — the premium lane stays honest because this cheap native door stays open.",
       },
       laneB: {
         name: "WITNESS_KEY — premium, genesis + witness",
         topicId: entities.keyTopicId,
         fee: { amount: String(PEG.laneB.feeKey), asset: entities.keyTokenId, denomination: "KEY" },
-        note: "1 KEY = 1 stamp, burned on execution (W-4/D-3). The premium lives in the vending price, never here.",
+        note: "1 KEY = 1 stamp, burned on execution. The premium lives in the vending price, never here.",
       },
     },
     vending: {
       priceUsd: PEG.vending.priceUsd,
       costUsdNotional: PEG.vending.costUsdNotional,
-      note: "Price = funding the newborn receives + delivery network allowance + visible margin (D-2 as amended 2026-07-27). The vend forwards 3 HBAR to the testimony account it creates; the price covers what it delivers.",
+      note: "Price = funding the newborn receives + delivery network allowance + visible margin (repriced 2026-07-27). The vend forwards 3 HBAR to the testimony account it creates; the price covers what it delivers.",
       accepts: [
         {
           scheme: "exact",

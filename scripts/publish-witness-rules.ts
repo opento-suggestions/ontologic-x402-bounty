@@ -3,7 +3,7 @@
  *
  * ⚠ CEREMONY SCRIPT — HUMAN GATE REQUIRED (CLAUDE.md). The first messages on
  * an immutable topic are the ground every later verdict resolves against.
- * The content comes from rules/*.draft.json — steward-ratified, never
+ * The content comes from rules/*.json — steward-ratified, never
  * improvised here. This script only fills the publish-time fields:
  * author (ROOT_ID), createdAt, contentHash (self-hashing via the seam's
  * computeContentHash), then the follow-up ruleRegistryEntry with ruleUri +
@@ -21,7 +21,7 @@ import { buildHcsUri, resolveLatestRule, resolveRuleDef, type RuleDef } from "..
 import { getAuthorityConfig, getNetworkConfig } from "../packages/core/src/config.js";
 import { appendEvidence, awaitMirrorMessage, consensusString, hashscanTx, openRootClient, readJson } from "./lib/ops.js";
 
-const DRAFTS = ["rules/witness-lane-conformance.draft.json", "rules/witness-delegation.draft.json"];
+const DRAFTS = ["rules/witness-lane-conformance.json", "rules/witness-delegation.json"];
 
 async function main() {
   const auth = getAuthorityConfig();
