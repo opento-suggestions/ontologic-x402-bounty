@@ -2,8 +2,8 @@
   "network": "hedera-testnet",
   "laneATopicId": "0.0.9645621",
   "laneBTopicId": "0.0.9645622",
-  "keyTokenId": "0.0.9645864",
-  "vendingContractId": "0.0.9645863",
+  "keyTokenId": "0.0.9815453",
+  "vendingContractId": "0.0.9815452",
   "treasuryAccountId": "0.0.8641261",
   "peg": {
     "hbarUsd": 0.1,
@@ -39,6 +39,7 @@
   },
   "requirements": {
     "generatedBy": "scripts/peg.ts — the single price authority; do not hand-edit",
+    "spec": "https://github.com/opento-suggestions/ontologic-x402-bounty/blob/main/SPEC.md",
     "peg": {
       "hbarUsd": 0.1,
       "semantics": "manual fixed peg, testnet demo (see LIMITATIONS.md)"
@@ -53,17 +54,17 @@
           "denomination": "tinybar"
         },
         "feeUsdNotional": 0.001,
-        "note": "HIP-991 fixed fee charged atomically as the stamp records. At-cost network fee is paid separately to the network; this fee is ORG's published minimum margin (W-5)."
+        "note": "HIP-991 fixed fee charged atomically as the stamp records. The at-cost network fee is paid separately to the network; this fee is ORG's published minimum margin — the premium lane stays honest because this cheap native door stays open."
       },
       "laneB": {
         "name": "WITNESS_KEY — premium, genesis + witness",
         "topicId": "0.0.9645622",
         "fee": {
           "amount": "1",
-          "asset": "0.0.9645864",
+          "asset": "0.0.9815453",
           "denomination": "KEY"
         },
-        "note": "1 KEY = 1 stamp, burned on execution (W-4/D-3). The premium lives in the vending price, never here."
+        "note": "1 KEY = 1 stamp, burned on execution. The premium lives in the vending price, never here."
       }
     },
     "vending": {
@@ -73,7 +74,7 @@
         "deliveryNetwork": 0.15,
         "margin": 0.05
       },
-      "note": "Price = funding the newborn receives + delivery network allowance + visible margin (D-2 as amended 2026-07-27). The vend forwards 3 HBAR to the testimony account it creates; the price covers what it delivers.",
+      "note": "Price = funding the newborn receives + delivery network allowance + visible margin (repriced 2026-07-27). The vend forwards 3 HBAR to the testimony account it creates; the price covers what it delivers.",
       "accepts": [
         {
           "scheme": "exact",

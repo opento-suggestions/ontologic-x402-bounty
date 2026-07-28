@@ -138,7 +138,7 @@ contract WitnessVendingMachine {
             name: "Witness KEY",
             symbol: "wKEY",
             treasury: address(this),
-            memo: '{"purpose":"1 KEY = 1 stamp, burned on execution (W-4/D-3)","steward":"ORG"}',
+            memo: "Vends KEY+testimony genesis for reasoning-trace stamps. ORG hcs://0.0.9815434/1785270170.307828104",
             tokenSupplyType: false, // infinite
             maxSupply: 0,
             freezeDefault: false,

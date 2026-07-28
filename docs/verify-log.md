@@ -20,6 +20,22 @@ Dated findings for the spec's V-series items. Each entry names the design branch
 
 ## Entries
 
+### 2026-07-28 — the KEY supersession (rectification pass, primary record)
+
+Executed in one sitting, steward-confirmed in-turn, every write gated on a mirror read-back. The first wKEY's frozen memo carried ORG's internal decision-log shorthand; memos are immutable, so the correction is a successor issue (full rationale in LIMITATIONS.md).
+
+| Entity / event | Value |
+|----------------|-------|
+| WITNESS_TERMS topic (immutable, submit=operator, admin null) | `0.0.9815434` |
+| Vending terms, message one (single 965-byte message) | `hcs://0.0.9815434/1785270170.307828104` |
+| Successor WitnessVendingMachine | `0.0.9815452` |
+| Successor wKEY (memo = plain purpose + ORG + terms URI, 98 bytes; admin null) | `0.0.9815453` |
+| Lane B re-peg (topic `0.0.9645622` unchanged; fee → 1 new wKEY, collector = contract) | consensus `1785270314.845635936` |
+| Root account memo → plain language (mutable update, root-signed) | `0.0.9794226` |
+| Post-deploy proof: full Lane B chain on the successor (newborn `0.0.9815538`) | stamp `1785270623.447814366`, verdict valid |
+
+**Transition-window artifact (disclosed):** during the post-deploy smoke, a leftover pre-deploy redeem watcher (running since the morning's customer-posture test, holding the OLD `VENDING_CONTRACT_ID` in its process env) raced the current watcher on the same fresh receipt. Each generation's count-based idempotency counts deliveries only against its own contract, so both vended: the newborn received 3 HBAR + 1 KEY from the successor (correct) and an extra 3 HBAR via the old contract (`0.0.8641261-1785270604-934174325`). Operator cost ~3 testnet HBAR; no customer involved (the newborn is ORG's own test keystore). Operational rule adopted: **retire all watchers before rolling `VENDING_CONTRACT_ID`** — a watcher's era is fixed at boot.
+
 ### 2026-07-27 — the Phase 2 ceremony (primary record)
 
 Executed in one sitting, steward-confirmed in-turn, every write gated on a mirror read-back. All entities testnet; all reads keyless.

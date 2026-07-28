@@ -1,0 +1,11 @@
+{
+  "schema": "org.witness.vendingTerms",
+  "version": 1,
+  "steward": "Ontologic Reclamation Group (ORG)",
+  "network": "hedera:testnet",
+  "purpose": "This vending machine sells witnessed reasoning. One purchase delivers 1 wKEY plus the genesis of a fresh testimony account.",
+  "delivery": "The wKEY pays the fee to stamp one reasoning trace on the witness lane; the new account is the identity that signs its own testimony against the published color taxonomy. A KEY spent on a stamp is burned - consumed supply exits circulation.",
+  "howToBuy": "Settle the x402 payment published at https://www.ontologic.dev/x402/vend (HTTP 402 challenge; also config.witness.json in the repo below), with transfer memo x402:witness-required:vend:<your-alias>. ORG's watcher redeems settled receipts into delivery.",
+  "price": "Published in the 402 challenge - itemized as newborn funding + delivery network allowance + visible margin.",
+  "repo": "https://github.com/opento-suggestions/ontologic-x402-bounty"
+}

@@ -43,3 +43,15 @@ Running collection of on-chain evidence (bounty checklist §10: real testnet tra
 | 2026-07-27 | burnCollected(5) — Lane B fee sink executed (D-3) | `0.0.9645864` | https://hashscan.io/testnet/transaction/0.0.8641261-1785184757-432588566 |
 | 2026-07-27 | redeem: settled x402 receipt 0.0.9646033-1785185914-017790030 → vend(0xa12eae3413f40b6d641a4d7d59c3bb695a674b3a) | `0xa12eae3413f40b6d641a4d7d59c3bb695a674b3a` | https://hashscan.io/testnet/transaction/0.0.8641261-1785185926-556533593 |
 | 2026-07-27 | burnCollected(1) — Lane B fee sink executed (D-3) | `0.0.9645864` | https://hashscan.io/testnet/transaction/0.0.8641261-1785185940-213691640 |
+| 2026-07-28 | redeem: settled x402 receipt 0.0.9646033-1785269150-995968682 → vend(0x6246802c638d06c939a400e8aebd11e8d8c1fd9a) | `0x6246802c638d06c939a400e8aebd11e8d8c1fd9a` | https://hashscan.io/testnet/transaction/0.0.8641261-1785269159-136772762 |
+| 2026-07-28 | burnCollected(1) — Lane B fee sink executed (D-3) | `0.0.9645864` | https://hashscan.io/testnet/transaction/0.0.8641261-1785269357-219580472 |
+| 2026-07-28 | redeem: settled x402 receipt 0.0.9646033-1785269365-160094802 → vend(0xa9ff00bf0e6d0b47ed6877a5655bc7ec49e24a97) | `0xa9ff00bf0e6d0b47ed6877a5655bc7ec49e24a97` | https://hashscan.io/testnet/transaction/0.0.8641261-1785269376-006010326 |
+| 2026-07-28 | burnCollected(1) — Lane B fee sink executed (D-3) | `0.0.9645864` | https://hashscan.io/testnet/transaction/0.0.8641261-1785269386-485031464 |
+| 2026-07-28 | create WITNESS_TERMS topic (immutable, submit=operator — vending terms feed) | `0.0.9815434` | https://hashscan.io/testnet/topic/0.0.9815434 |
+| 2026-07-28 | publish vending terms (message one on WITNESS_TERMS) | `hcs://0.0.9815434/1785270170.307828104` | https://hashscan.io/testnet/transaction/0.0.8641261-1785270166-389635499 |
+| 2026-07-28 | WitnessVendingMachine deployed | `0.0.9815452` | https://hashscan.io/testnet/contract/0.0.9815452 |
+| 2026-07-28 | witness-KEY created by contract (immutable, supply key = contract) | `0.0.9815453` | https://hashscan.io/testnet/token/0.0.9815453 |
+| 2026-07-28 | Lane B re-peg: fee -> 1 wKEY, collector = vending contract / wKEY treasury | `0.0.9645622` | https://hashscan.io/testnet/topic/0.0.9645622 |
+| 2026-07-28 | root account memo updated to plain language | `0.0.9794226` | https://hashscan.io/testnet/account/0.0.9794226 |
+| 2026-07-28 | redeem: settled x402 receipt 0.0.9646033-1785270597-544042843 → vend(0x215b5778185661410c847799cf3ebe8d88ec332f) | `0x215b5778185661410c847799cf3ebe8d88ec332f` | https://hashscan.io/testnet/transaction/0.0.8641261-1785270606-461117042 |
+| 2026-07-28 | redeem: settled x402 receipt 0.0.9646033-1785270597-544042843 → vend(0x215b5778185661410c847799cf3ebe8d88ec332f) | `0x215b5778185661410c847799cf3ebe8d88ec332f` | https://hashscan.io/testnet/transaction/0.0.8641261-1785270604-934174325 |
