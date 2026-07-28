@@ -84,7 +84,7 @@ async function main() {
     WITNESS_KEY_TOKEN_ID: tokenId,
   });
   console.log("\n.env updated: VENDING_CONTRACT_ID, VENDING_CONTRACT_ADDR, WITNESS_KEY_TOKEN_ID");
-  console.log("Next: scripts/repeg-lane-b.ts (Lane B fee → 1 KEY), then vend-smoke.");
+  console.log("Next: scripts/repeg-lane-b.ts (Lane B fee → 1 KEY), then smoke:lane-b.");
   void tokenAddr;
   client.close();
 }

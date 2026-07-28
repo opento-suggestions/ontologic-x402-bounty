@@ -6,7 +6,7 @@
  *      challenge is persisted to the keystore so witness_pay consumes THESE
  *      terms — the client never invents its own.
  *   2. config.witness.json at the repo root — the deploy-time artifact
- *      emit-requirements writes from the peg, for offline operation.
+ *      the peg CLI (npm run peg) writes, for offline operation.
  * The operator's environment is never consulted: this process is the payer.
  */
 

@@ -9,7 +9,7 @@ Steward: Ontologic Reclamation Group (ORG). Testnet only. See [LIMITATIONS.md](L
 ## Two lanes, one record
 
 - **Lane A — native (discounted).** A Hedera account signs one `TopicMessageSubmitTransaction` carrying the morpheme; the HIP-991 fixed HBAR fee is charged *as* the message is recorded. Payment and stamp are one atomic consensus event.
-- **Lane B — premium (genesis + witness).** An off-chain agent with no Hedera account pays $0.50 USDC through x402 into the vending machine — priced to cover the 3 HBAR of funding the vend delivers, itemized at-cost + visible margin in `scripts/peg.ts` (D-2 as amended 2026-07-27). The same call funds the agent's key alias into existence, delivers 1 KEY, and includes gas for the newborn account. The newborn signs its own stamp to the KEY-fee topic; the consumed KEY is burned. Every premium customer exits holding their own Hedera key.
+- **Lane B — premium (genesis + witness).** An off-chain agent with no Hedera account pays $0.50 USDC through x402 into the vending machine — priced to cover the 3 HBAR of funding the vend delivers, itemized at-cost + visible margin in the peg (`packages/ops/src/peg.ts`, D-2 as amended 2026-07-27). The same call funds the agent's key alias into existence, delivers 1 KEY, and includes gas for the newborn account. The newborn signs its own stamp to the KEY-fee topic; the consumed KEY is burned. Every premium customer exits holding their own Hedera key.
 
 Reads are free and public — mirror-node REST is the canonical read path; the Proof Wall and verifier are conveniences.
 
@@ -17,11 +17,13 @@ Reads are free and public — mirror-node REST is the canonical read path; the P
 
 | Path | What |
 |------|------|
-| `packages/core/` | `@witness/core` — canonical hash seam, claim builders, mirror client, keyless verifier |
-| `packages/mcp/` | `witness-mcp` — the goose plugin (MCP server, stdio) |
+| `packages/core/` | `@witness/core` — the pure seam: canonical hashing, claim builders, mirror client, keyless verifier. No keys, no clients. |
+| `packages/ops/` | `@witness/ops` — the keyed engine: persona-typed clients (operator/root/payer/newborn as disjoint types), the price peg, and the lane operations (stamp, settle, redeem, re-peg, verify) |
+| `packages/mcp/` | `witness-mcp` — the goose plugin (MCP server, stdio); tools are thin adapters over ops |
 | `packages/contracts/` | `WitnessVendingMachine.sol` + hardhat |
-| `scripts/` | testnet operations: probes, topic creation, smokes, ceremony scripts, mandated attestation |
-| `rules/` | the witness-layer RuleDefs (steward-ratified content; published at the ceremony) |
+| `scripts/` | thin CLI entries over ops, plus the guarded ceremony one-shots |
+| `probes/` | re-runnable falsifiability instruments (V-9's HIP-551 batch probe) |
+| `rules/` | the witness-layer RuleDefs — published source-of-record (ceremony 2026-07-27) |
 | `docs/verify-log.md` | dated V-series verification findings |
 | `docs/evidence.md` | HashScan links for every on-chain action |
 
@@ -61,6 +63,24 @@ Prefer an agent driving it? Wire `packages/mcp` into your own goose
 (see [packages/mcp/README.md](packages/mcp/README.md)) and ask it to assert
 a WHITE trace and stamp the native lane — for Lane A it only needs
 `requirements → assert_claim → stamp`.
+
+## Testing Lane B from a customer clone (the full x402 story)
+
+The same payer-only `.env` drives the premium lane end to end. Your clone
+never needs an ORG identity: `witness_requirements` fetches the live HTTP 402
+challenge and `witness_pay` consumes ITS terms (payTo, amount) — falling back
+to the shipped `config.witness.json` when offline. Run the whole storyline:
+
+```bash
+npm run smoke:mcp    # auto-detects customer posture (OPERATOR_ID still the placeholder)
+```
+
+It stamps Lane A, generates a newborn testimony key, settles the x402 payment
+with the redemption memo, then waits for ORG's watcher (`npm run redeem:watch`
+on the operator side) to honor the receipt — genesis + 1 wKEY — before the
+newborn signs its own Lane B stamp and re-verifies it keyless. The settled
+transfer is your receipt; delivery is a redeemable right against it (no funds
+strand — see [LIMITATIONS.md](LIMITATIONS.md)).
 
 If you'd rather test the *other* door: pay the fee and write whatever bytes
 you like. You'll have bought a consensus timestamp and nothing else — the

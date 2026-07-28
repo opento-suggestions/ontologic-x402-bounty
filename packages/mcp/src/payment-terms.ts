@@ -9,7 +9,7 @@
  *       persisted in the keystore by the caller, refetched here if older than
  *       the challenge's own maxTimeoutSeconds;
  *   (b) config.witness.json at the repo root — the deploy-time artifact
- *       emit-requirements writes from the same peg, for offline operation;
+ *       the peg CLI (npm run peg) writes, for offline operation;
  *   (c) neither → one instructive error naming both paths.
  *
  * Everything is injectable so the resolution order is testable offline.

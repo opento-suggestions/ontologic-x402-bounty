@@ -1,6 +1,6 @@
 # CURRENT_ARCHITECTURE.md — Witness Required, as built
 
-**State of the codebase as of 2026-07-24.** Every significant chunk of code is listed here with what it does and *why it is shaped that way* — each defense traces to the spec (`SPEC.md`, v0.2 as amended: W-invariants, D-decisions, V-verify items; W-11/W-12 in `PHASE_2.md` §2) or to an empirical verdict recorded in `docs/verify-log.md`. Where the build diverges from spec v0.2, the divergence is stated in §9, not papered over. Read `CLAUDE.md` first for the working agreement and hard prohibitions.
+**State of the codebase as of 2026-07-28** (post Phase 2 ceremony, post the rectification pass: challenge-consumption fix, KEY supersession, three-layer refactor). Every significant chunk of code is listed here with what it does and *why it is shaped that way* — each defense traces to the spec (`SPEC.md`, v0.2 as amended: W-invariants, D-decisions, V-verify items; W-11/W-12 in `PHASE_2.md` §2) or to an empirical verdict recorded in `docs/verify-log.md`. Where the build diverges from spec v0.2, the divergence is stated in §9, not papered over. Read `CLAUDE.md` first for the working agreement and hard prohibitions.
 
 ---
 
@@ -11,7 +11,7 @@ payer-agent (goose + witness-mcp)                    ORG (operator scripts)
   │ assert claim (W-9 closed space)                    │
   │ GET ontologic.dev/x402/vend  ──► literal HTTP 402  │
   │ pay: exact-scheme TransferTransaction ──────────►  │ redeem.ts: mirror memo-scan
-  │        (settled transfer = receipt)                │   └─► vend() on 0.0.9645863
+  │        (settled transfer = receipt)                │   └─► vend() on 0.0.9815452
   │ ◄─── genesis + 1 wKEY delivered (one atomic call) ─┘
   │ stamp: TopicMessageSubmit, payer/newborn-signed
   ▼
@@ -25,9 +25,11 @@ Lane A 0.0.9645621 (0.01 HBAR fee)   Lane B 0.0.9645622 (1 wKEY fee → contract
 | Entity | ID | Custody |
 |---|---|---|
 | Lane A topic `WITNESS_HBAR` | `0.0.9645621` | admin+feeSchedule key = operator; **no submit key** |
-| Lane B topic `WITNESS_KEY` | `0.0.9645622` | same; fee = 1 wKEY, collector = the contract |
-| WitnessVendingMachine | `0.0.9645863` | operator holds admin relationship only |
-| witness-KEY (wKEY) | `0.0.9645864` | treasury = contract, supply key = contract, **admin key = null** |
+| Lane B topic `WITNESS_KEY` | `0.0.9645622` | same; fee = 1 wKEY (current issue), collector = the contract |
+| WitnessVendingMachine | `0.0.9815452` | successor issue 2026-07-28; operator holds admin relationship only |
+| witness-KEY (wKEY) | `0.0.9815453` | treasury = contract, supply key = contract, **admin key = null**; memo = plain purpose + the terms URI |
+| Vending terms topic `WITNESS_TERMS` | `0.0.9815434` | submit = operator, **admin = NONE (immutable at birth)**; message one is the terms the token memo resolves to |
+| First issue (superseded) | contract `0.0.9645863` · wKEY `0.0.9645864` | on-chain untouched; decision-log shorthand in its frozen memo — see LIMITATIONS.md |
 | ORG operator | `0.0.8641261` | the ONE ORG key (W-2 carve-out) |
 | payer-agent (demo) | `0.0.9646033` | the agent's funding account, distinct from operator AND root by boot-check |
 | Read-only inputs | RULE_DEFS `0.0.8641938` · RULE_REGISTRY `0.0.8641941` · PROOF `0.0.8641943` | untouched, v0.8.3 sphere |
@@ -35,7 +37,7 @@ Lane A 0.0.9645621 (0.01 HBAR fee)   Lane B 0.0.9645622 (1 wKEY fee → contract
 | Witness Rule Registry `WITNESS_RULES` | `0.0.9794232` | submit = root, **admin = NONE (immutable at birth, mirror-confirmed)**; witness RuleDefs + mandates + revocations |
 | Verdict Topic `WITNESS_VERDICTS` | `0.0.9794234` | submit = operator, **admin = NONE**, no fee; all ORG rejection attestations from the mandate era (first mandate: `1785172221.348657104`) |
 
-**Repo map:** `packages/core` (the seam — zero Hedera SDK) · `packages/mcp` (the goose plugin — the payer-agent's process) · `packages/contracts` (KEY custody) · `scripts/` (ORG-side testnet operations) · site pages live in the separate `ontologic-dev` repo (`static/witness`, `static/wall`, `netlify/functions/x402.mts`).
+**Repo map (three layers):** `packages/core` (the pure seam — zero Hedera SDK, no keys) · `packages/ops` (the keyed engine — persona-typed clients + the recurring lane operations) · thin frontends: `packages/mcp` (the goose plugin — the payer-agent's process; tools are adapters over ops), `scripts/` (CLI entries and guarded ceremony one-shots), `probes/` (re-runnable falsifiability instruments) · `packages/contracts` (KEY custody) · site pages live in the separate `ontologic-dev` repo (`static/witness`, `static/wall`, `netlify/functions/x402.mts`).
 
 ---
 
@@ -46,12 +48,12 @@ The spec's W-series is enforced by *structure*, not by policy, wherever possible
 | Invariant | Where enforced | Mechanism |
 |---|---|---|
 | W-1 no payment, no stamp | HIP-991 topics (network) | fee charged in the same consensus event as the message; not our code at all — that is the point |
-| W-2 keyless testimony | `mcp/src/env.ts` boot check; keystore; `vend()` shape | plugin refuses `PAYER_ID == OPERATOR_ID`; newborn keys never leave the keystore; no contract function touches testimony |
+| W-2 keyless testimony | `mcp/src/env.ts` boot check; keystore; `vend()` shape; `ops/src/contexts.ts` persona types | plugin refuses `PAYER_ID == OPERATOR_ID`; newborn keys never leave the keystore; no contract function touches testimony; customer-path ops signatures accept only payer/newborn contexts (operator identity is a compile error there) |
 | W-3 lane equality | `core/verify.ts`, `wall/js/data.js` | one verdict function for both topics; lane is metadata, never a trust input |
 | W-4 unit semantics | `scripts/peg.ts` (`laneB.feeKey = 1`), `vend()` mints exactly 1 | the premium exists only in `vending.priceUsd` |
 | W-5 open native door | `create-topics.ts` drops `setSubmitKey` | anyone can pay Lane A's published fee and write |
 | W-6 deterministic rendering | `wall/js/tiles.js` | every visual parameter indexes into bindingHash bytes; zero `Math.random` (grep-auditable) |
-| W-7 published price list | `scripts/peg.ts` → `emit-requirements.ts` | ONE price authority emits both the machine config and the site JSON |
+| W-7 published price list | `packages/ops/src/peg.ts` → `npm run peg` | ONE price authority emits both the machine config and the site JSON; the plugin CONSUMES the published challenge instead of re-deriving terms |
 | W-8 the affidavit | `LIMITATIONS.md` | every disclosure sourced from the phase that generated it |
 | W-9 closed claim space | `core/claims.ts` | claims outside the space throw before any network write is possible |
 | W-10 no payload pollination | `core/schema.ts` (rejection carries hash only), `core/reasons.ts` (closed code space), `wall/js/wall.js` (invalid → no DOM node) | structural: the data types cannot carry foreign bytes to a renderer |
@@ -75,7 +77,8 @@ The hash recipe, and the single most defended decision in the build: **it was po
 
 ### 3.2 `src/config.ts`
 
-- `assertTestnet()` — the mainnet kill-switch, ported from hello-world and **never weakened**: hard-fails on any `mainnet` substring, and *also* hard-fails if it cannot positively confirm `testnet`. Called before every Hedera client opens (scripts via `ops.openOperatorClient`, plugin at module top of `mcp/src/index.ts:35` — before the stdio transport connects).
+- `assertTestnet()` — the mainnet kill-switch, ported from hello-world and **never weakened**: hard-fails on any `mainnet` substring, and *also* hard-fails if it cannot positively confirm `testnet`. Baked non-optionally into every ops context constructor (`packages/ops/src/operator.ts`, `customer.ts`) — no path opens a Hedera client without it — plus the module-top call in `mcp/src/index.ts` before the stdio transport connects.
+- `isPlaceholder()` / `required()` — `.env.example`-shaped placeholders (`<...>` stubs, runs of x/X like `0.0.XXXXXXX`) fail at step 0 with a clear message, never deep in the SDK as `failed to parse entity id`. This is also how a customer clone is *detected*: `getOperatorConfig()` throwing on the placeholder is what flips mcp-smoke into customer posture.
 - `findEnv()` walks upward from `cwd` (≤5 levels) — one `.env` at repo root is the single source of truth, and scripts run from nested package dirs (hardhat, mcp) without their own env copies drifting.
 - `getSphereConfig()` defaults to the live v0.8.3 topic IDs — these are *read-only inputs*; nothing in this codebase writes to them.
 
@@ -118,7 +121,7 @@ Bundle shapes are copied from `ontologicv0.5_clean/examples/v07/bundle-white-ent
 6. `mandate.test.ts` — grant lifecycle: self-grant unconstructible, window boundaries at nanosecond precision, revocation never retroactive, wrong-topic/forged grants judged out (offline).
 7. `attestation.test.ts` — the v0.2 attestation is a real morpheme; mandateHash unsealed in M; the live v0.1 attestation stands as history (offline).
 
-58 tests; the offline subset alone locks the recipe, so CI without network stays meaningful.
+Plus, outside core: `packages/mcp/test/payment-terms.test.ts` (the challenge → config → fail resolution order, including the placeholder-`OPERATOR_ID`-never-consulted regression), `packages/mcp/test/keystore.test.ts` (the challenge handoff preserves newborn state), `packages/core/test/config.test.ts` (placeholder shapes fail at step 0). 74 tests; the offline subset alone locks the recipe, so CI without network stays meaningful.
 
 ### 3.9 The authority layer in core (Phase 2b, PHASE_2 §4)
 
@@ -135,7 +138,7 @@ Bundle shapes are copied from `ontologicv0.5_clean/examples/v07/bundle-white-ent
 **Scope defense first:** per verify-log **V-1b (CLOSED: NO)** — the Hedera x402 exact scheme settles as a *plain native TransferTransaction*; the scheme spec explicitly forbids wrapping it in any other transaction type. Therefore this contract is **not** a payment endpoint. It is the custody answer to exactly one question: *who holds the KEY supply key so that mint-on-vend and burn-on-stamp live in the same neutral place?* (spec D-3). Answer: code.
 
 - `constructor` (112): `operator = msg.sender`, immutable. The operator's blast radius is the admin *relationship* (calling vend/burn/create), never testimony — matching the LIMITATIONS.md disclosure (slander-not-forge).
-- `createKeyToken` (122): the contract creates wKEY **itself** through the HTS system contract (`0x167`), because a token whose treasury is a contract must be created by that contract (treasury must sign; contracts sign by executing). Configuration defended field-by-field: `treasury = address(this)` (fees collect into code); supply key = `contractId: address(this)` (only vend/burn move supply); **no admin key** → the token is born immutable — nobody, ORG included, can ever re-key it (`AlreadyCreated` guard makes creation single-shot); `tokenSupplyType: false` (infinite — supply discipline comes from the burn loop, not a cap); decimals 0 (W-4: 1 KEY = 1 stamp; fractional KEY is meaningless).
+- `createKeyToken` (122): the contract creates wKEY **itself** through the HTS system contract (`0x167`), because a token whose treasury is a contract must be created by that contract (treasury must sign; contracts sign by executing). Configuration defended field-by-field: `treasury = address(this)` (fees collect into code); supply key = `contractId: address(this)` (only vend/burn move supply); **no admin key** → the token is born immutable — nobody, ORG included, can ever re-key it (`AlreadyCreated` guard makes creation single-shot); `tokenSupplyType: false` (infinite — supply discipline comes from the burn loop, not a cap); decimals 0 (W-4: 1 KEY = 1 stamp; fractional KEY is meaningless). The frozen memo (98 bytes) states the machine's purpose in plain language and resolves to the published terms — `hcs://0.0.9815434/1785270170.307828104`, message one on the immutable WITNESS_TERMS topic. That memo is WHY the current contract/token are a successor issue: the first issue's memo carried internal decision-log shorthand, memos are immutable, and `AlreadyCreated` makes the token one-shot per contract — so the correction was a new deploy, disclosed in LIMITATIONS.md, with the first issue left untouched on-chain.
 - `vend(address payable to)` (166): **the delivery leg, one atomic call** — (1) forward `msg.value` to the alias, which **lazy-creates the newborn account** (HIP-583; empirically verified — V-3/V-5); (2) mint exactly 1 wKEY to treasury; (3) `transferToken` to the newborn (received via auto-association, no association tx — verified). Any leg fails → whole call reverts → no partial state (observed in the wild: the out-of-gas attempt left no account, no mint). `onlyOperator` because *the payment settled elsewhere* (V-1b): delivery is ORG honoring a receipt, and the receipt+redeemable-right model (LIMITATIONS.md, W-1 Lane B wording) is exactly what makes an operator-triggered delivery safe — failure is re-executable, no funds strand. Empirical gas note: lazy creation is expensive; 1.2M gas OOG'd, callers use 3M.
 - `burnCollected(int64)` (190): D-3's sink. The Lane B topic's fee collector **is this contract** (set via `repeg-lane-b.ts`; the network accepted a contract collector without a collector signature on the topic update — empirically verified), so stamp fees flow to the treasury-in-code and `burnToken` burns from treasury by definition. Live demonstration: wKEY `total_supply` returned to 0 after the first full loop. Self-executing neutrality is *structural*: there is no code path by which collected KEY exits except burning.
 - Deliberately absent: pause, drain, upgrade hooks — spec §5 "testnet-MVP-light, noted for the mainnet story", noted in LIMITATIONS.md.
@@ -152,39 +155,49 @@ Structural successor to hologlass-mcp v0.3.2 (same skeleton: `McpServer` + stdio
 
 The plugin holds the **agent's** identity and nothing of ORG's. `getPayerConfig` refuses to run when `PAYER_ID == OPERATOR_ID`, for two independent reasons: (a) W-2 — no ORG key may enter the agent's process; (b) demo integrity — the fee collector is exempt from its own HIP-991 fees (empirically confirmed: collector-paid stamps show `assessed_custom_fees: []`), so an operator-as-payer demo would *silently fake* the paid flow. The boot check makes the honest configuration the only configuration.
 
-### 5.2 `src/channels.ts` + `src/state/keystore.ts`
+### 5.2 `src/channels.ts` + `src/state/keystore.ts` + `src/payment-terms.ts`
 
 Three-channel separation (hologlass anatomy): `content` = agent-visible verdicts and next-steps; `structuredContent` = full record for a viewer; `_meta` = timestamps, never hash-input. **Private keys are banned from all three** — the keystore (flat JSON in the agent's state dir) is the only place a testimony key exists; `newbornKey()` is consumed solely by the stamp tool's signer.
+
+**`payment-terms.ts` — the challenge-consumption seam (added 2026-07-28 after a customer-posture failure).** The original tools resolved the payment destination from `OPERATOR_ID` — the deployer's identity answering a payer-path question, which broke every customer clone (placeholder env → `failed to parse entity id`). Now the terms (payTo/amount/asset) resolve in a declared order: **(a)** the last 402 challenge `witness_requirements` fetched, persisted in the keystore exactly as genesis state is (`recordChallenge`/`latestChallenge`), refetched past the challenge's own `maxTimeoutSeconds`; **(b)** `config.witness.json`, the deploy-time artifact the peg CLI writes, for offline operation; **(c)** one instructive error naming both paths. Every input is injectable, so the whole order is pinned by offline tests (`test/payment-terms.test.ts`), including the placeholder-never-consulted regression.
 
 ### 5.3 The seven tools (registered `index.ts:50–116`, each `witness_*` with zod schemas)
 
 | Tool | Defense |
 |---|---|
-| `requirements` | Demo beat 2, W-7. Prefers `WITNESS_REQUIREMENTS_URL` — currently the **live production gateway** `ontologic.dev/x402/vend`, and treats an HTTP **402** response as the success case (that status *is* the conformance surface). Local fallback rebuilds from the same peg constants — either path serves the one price authority. |
+| `requirements` | Demo beat 2, W-7. Prefers `WITNESS_REQUIREMENTS_URL` — the **live production gateway** `ontologic.dev/x402/vend`, treating an HTTP **402** response as the success case (that status *is* the conformance surface) — and **persists the fetched challenge to the keystore** so `pay` consumes THESE terms. Local fallback serves `config.witness.json` (the deploy-time artifact); the operator's env is never consulted at runtime. |
 | `assert_claim` | Thin wrapper over `core/claims` — W-9 lives in core, not the tool, so no alternative caller can bypass it. Failure responses include `allowedClaims()` so the agent learns the space instead of flailing. |
 | `genesis` | Generates in-process, stores in keystore, returns **only the alias**. "Theirs, never ours" as code. |
-| `pay` | The x402 leg per the real scheme (V-1). Facilitator mode: builds the exact-scheme `TransferTransaction`, signs **partially** (fee payer open), base64s, POSTs to `/settle` — the wire flow of the official template. Direct mode (no facilitator configured): the payer self-sponsors the *same conformant transfer*. Both return the **settled transfer as the receipt**; the memo `x402:witness-required:vend:<alias>` is the machine-readable redemption claim. The tool cannot deliver — delivery is ORG's, by design (V-1b branch). |
+| `pay` | The x402 leg per the real scheme (V-1), as an adapter: terms from `resolvePaymentTerms` (challenge → config → fail; source disclosed as `paymentTermsSource` in every response), settlement via ops `settleVendPayment`, whose signature accepts **only a `PayerContext`**. Facilitator mode: partial signature (fee payer open), base64, POST `/settle` — the official template's wire flow. Direct mode: the payer self-sponsors the *same conformant transfer*. Both return the **settled transfer as the receipt**; the memo `x402:witness-required:vend:<alias>` is the machine-readable redemption claim. The tool cannot deliver — delivery is ORG's, by design (V-1b branch). |
 | `redeem_status` | Pure keyless mirror read: alias → account? funded? holds 1 wKEY? Also records the newborn's real account ID into the keystore for the stamp tool. Polling the *public record* for delivery is the redeemable-right model made tangible. |
-| `stamp` | The witness itself. Lane A signer = payer; Lane B signer = **the newborn** (W-2: the testifier signs, always). Both lanes set `CustomFeeLimit` at published-price ×2 — the spec's "max-fee protection means a re-peg cannot ambush anyone", as a default nobody has to remember. Claim is rebuilt fresh from the live taxonomy at stamp time (no stale-claim replay from tool state). |
-| `verify` | `core.judgeMessage` over both lane topics with mirror-lag patience (10 × 2s — V-7 measured 3–7s). Exact-timestamp match only (mirror's `timestamp=` filter is `>=`; without the equality check a query could verify the *next* message). |
+| `stamp` | The witness itself, adapting ops `stampLane` — the same engine the smokes and the fresh-clone path drive. Lane A signer = payer (`openPayerContext`); Lane B signer = **the newborn** (`openNewbornContext` from the keystore; W-2: the testifier signs, always). Max-custom-fee protection from the published peg — a re-peg cannot ambush anyone. Claim is rebuilt fresh from the live taxonomy at stamp time (no stale-claim replay from tool state). |
+| `verify` | ops `verifyStampOnMirror` over both lane topics — `core.judgeMessage` with mirror-lag patience (10 × 2s — V-7 measured 3–7s) and exact-timestamp match only (mirror's `timestamp=` filter is `>=`; without the equality check a query could verify the *next* message). |
 
 ---
 
-## 6. `scripts/` — ORG-side operations
+## 6. `packages/ops` + `scripts/` + `probes/` — the keyed engine and its thin frontends
 
-Shared plumbing `lib/ops.ts`: `openOperatorClient` (assertTestnet → client → **50 HBAR default max fee**, because testnet's ~6.6¢/HBAR exchange rate makes USD-priced network fees ~10× larger in HBAR than SDK defaults expect — discovered via `INSUFFICIENT_TX_FEE` on both topic-create and contract-create); `appendEvidence` (every on-chain action appends to `docs/evidence.md` — the bounty's link collection is a **side effect of running**, not a chore); `updateEnv` (entity IDs persist to `.env` so later scripts compose).
+**`packages/ops` is where keys live** (core stays pure; frontends stay thin). Its pieces:
 
-- `peg.ts` — the **single price authority** (W-7). Constants: Lane A fee = 0.01 HBAR = exactly the D-1 margin (at-cost is the network fee the payer already pays); Lane B fee = **1 KEY** (W-4 — the premium lives *only* in `vending.priceUsd` = $0.50, D-2 as amended 2026-07-27: itemized as funding $0.30 (the 3 HBAR the vend forwards to the newborn) + delivery network allowance $0.15 + visible margin $0.05); testnet HBAR notionally $0.10 (demo semantics, W-8). `priceEras` records the reprice boundary so receipts are always judged at their own era's price. `buildPaymentRequirements` emits Hedera exact-scheme objects: CAIP-2 `hedera:testnet`, `asset: "0.0.0"` for HBAR, Circle testnet USDC `0.0.429274` (mirror-confirmed live).
-- `emit-requirements.ts` — peg → `config.witness.json` AND the site's `payment-requirements.json`. One source, two artifacts; the published list *cannot* drift from the charged fees.
-- `create-topics.ts` — descendant of v0.8.3 `create_sphere.js` with three deliberate divergences: `setCustomFees` + `setFeeScheduleKey` (HIP-991 must be set at creation — why these are new sibling topics, not modifications of `0.0.8641943`); **no `setSubmitKey`** (the open door *is* W-5's cheap public door; W-9 binds reading, not writing); Lane B created with a provisional HBAR fee because wKEY did not exist yet (see §9.3).
-- `repeg-lane-b.ts` — the retained fee schedule key exercised: Lane B fee → 1 wKEY, **collector = the contract**. Fallback-to-operator branch exists but was not needed.
-- `lane-a-smoke.ts` / `lane-b-smoke.ts` — the two lanes end-to-end; every claim built through core; V-7 latency measured on each run; first Lane A run emitted the golden vectors.
-- `redeem.ts` — ORG honoring receipts: scans the treasury's incoming transfers on mirror for `x402:witness-required:vend:` memos at the price in force at each receipt's own consensus instant (`priceEras`), then `vend(alias)`. **Idempotent by public state, count-based**: receipts-ever netted against deliveries-ever (the contract's outgoing wKEY transfers), oldest-first — the original balance-based skip double-delivered once a customer spent their wKEY (2026-07-27, disclosed in the verify-log). Each pass ends by burning the treasury-in-code's collected balance (`burnCollected`, D-3's sink — the watcher is the burn cadence). This is the ONE ORG-signed action on the delivery path, and it signs no testimony.
-- `reject-attest.ts` — lazy attestation (D-6/D-7): judges at read time exactly as any reader would; only `invalid` verdicts proceed; attests **derivations only**; pays the lane's own published fee (the economics that kill the drain-attack: durability is funded by the party who wants it durable — here, ORG, manually). Refuses to attest about non-lane topics. Live: first attestation covers Lane A seq 2 (probe garbage), and the wall renders the attestation while the attempt still has no tile.
-- `probe-vending.ts` / `probe-batch.ts` — Phase 0 falsifier probes, kept in-tree as the executable form of the verify-log entries (V-5 all-proven; V-9 practical-NO with the two-step fallback demonstrated).
-- **Ceremony scripts (Phase 2, §3 — written, guarded, NOT yet executed; human gate required):** `create-root.ts` (single-shot, key-distinct, mirror read-back) · `create-authority-topics.ts` (all five §3.4 guards, including no-admin-key asserted in the built transaction and `verifyAnchors` read-back) · `publish-witness-rules.ts` (publishes the ratified `rules/` content with self-hashing `contentHash`, two-message pattern, keyless round-trip before success) · `grant-mandate.ts` (window as arguments, fresh nonce, read-back judges the grant, first-mandate era banner) · `revoke-mandate.ts` (refuses unresolvable or already-revoked targets). `openRootClient` asserts ROOT≠OPERATOR on every open.
-- `reject-attest.ts` — **rewritten for the mandate era**: refuses to run unless its own mandate currently resolves in-window (ORG cannot render out-of-mandate by accident); builds the v0.2 full-morpheme attestation against the conformance rule; writes to the **Verdict Topic**, not the subject's lane (§8b — judgment does not live behind the open door); read-back runs the full W-11 chain on its own verdict. Still lazy, still manual, still refuses foreign topics.
-- `create-payer.ts` / `mcp-smoke.ts` — demo provisioning and the full storyline driven through the plugin's own handlers (the rehearsal script).
+- **Persona contexts (`contexts.ts` / `operator.ts` / `customer.ts`)** — `OperatorContext` / `RootContext` / `PayerContext` / `NewbornContext` as disjoint types (distinct persona literals and field names), constructors split by side of the counter: ORG CLIs import `operator.ts`; customer tools import `customer.ts` and supply their own creds. `assertTestnet()` is baked into every open, with the **50 HBAR default max fee** (testnet's ~6.6¢/HBAR exchange rate makes USD-priced network fees ~10× larger in HBAR than SDK defaults expect — discovered via `INSUFFICIENT_TX_FEE`). `openRootContext` asserts ROOT≠OPERATOR on every open (W-11). The payoff: `settleVendPayment(ctx: PayerContext, …)` makes the deployer-identity-as-payTo bug a **compile error**, not a runtime discovery.
+- **Plumbing (`plumbing.ts`)** — ONE `waitForMirror` (exact-timestamp equality; replaced nine hand-rolled poll loops), one `hashscanTx` (replaced three copies), `appendEvidence` (every on-chain action appends to `docs/evidence.md` — the bounty's link collection is a **side effect of running**, not a chore), `updateEnv` (entity IDs persist to `.env` so later operations compose).
+- **`peg.ts` — the single price authority** (W-7). Constants: Lane A fee = 0.01 HBAR = exactly the D-1 margin (at-cost is the network fee the payer already pays); Lane B fee = **1 KEY** (W-4 — the premium lives *only* in `vending.priceUsd` = $0.50, D-2 as amended 2026-07-27: itemized as funding $0.30 + delivery network allowance $0.15 + visible margin $0.05); testnet HBAR notionally $0.10 (demo semantics, W-8). `priceEras` records the reprice boundary so receipts are always judged at their own era's price. `buildPaymentRequirements` emits Hedera exact-scheme objects: CAIP-2 `hedera:testnet`, `asset: "0.0.0"` for HBAR, Circle testnet USDC `0.0.429274` (mirror-confirmed live).
+- **Lane operations** — `stampLane` (one engine for both lanes and every frontend: claim built fresh through core, peg-derived fee-limit protection, signer = the context), `verifyStampOnMirror`, `settleVendPayment`, `redeemPass`, `repegLaneB`.
+
+**`scripts/` are CLI entries** (parse → open context → call ops → print) **plus the guarded ceremony one-shots**, which remain visible as liturgy — they use ops plumbing without dissolving into it:
+
+- `peg.ts` — the price authority's CLI: prints prices and emits `config.witness.json` AND the site's `payment-requirements.json` (`npm run peg`). One source, two artifacts; the published list *cannot* drift from the charged fees.
+- `create-topics.ts` — descendant of v0.8.3 `create_sphere.js` with three deliberate divergences: `setCustomFees` + `setFeeScheduleKey` (HIP-991 must be set at creation — why these are new sibling topics, not modifications of `0.0.8641943`); **no `setSubmitKey`** (the open door *is* W-5's cheap public door); Lane B created with a provisional HBAR fee because wKEY did not exist yet (see §9.3).
+- `repeg-lane-b.ts` — the retained fee schedule key exercised (twice now: the original HBAR→wKEY flip, and the 2026-07-28 flip to the successor wKEY). **Collector = the contract**; fallback-to-operator branch exists but was never needed.
+- `stamp-lane-a.ts` — the fresh-clone stranger path (W-5), kept as its own thin entry: friendly placeholder errors, ORG-identity refusals, then the same `stampLane` + `verifyStampOnMirror` everything else drives.
+- `lane-a-smoke.ts` — ORG's floor test on the same engine, plus V-7 latency measurement and the golden-vector block print. `lane-b-smoke.ts` — the single-process full-chain Lane B E2E (vend → newborn self-stamp → burn), kept until an equivalent exists post-refactor.
+- `redeem.ts` — CLI over ops `redeemPass`: flags, the 5s watch loop with graceful stop. The pass itself: mirror memo-scan at each receipt's own era price, count-based netting (receipts-ever vs deliveries-ever — the balance-based version double-delivered once a customer spent their wKEY, 2026-07-27, disclosed), vend what is owed, burn what the fees collected (D-3's sink — the watcher is the burn cadence). One operational rule from the 2026-07-28 supersession: deliveries count against the CURRENT contract, so **retire all watchers before rolling `VENDING_CONTRACT_ID`** (verify-log).
+- `reject-attest.ts` — lazy attestation for the mandate era: refuses to run unless its own mandate currently resolves in-window; builds the v0.2 full-morpheme attestation; writes to the **Verdict Topic**, not the subject's lane; read-back runs the full W-11 chain on its own verdict. Still lazy, still manual, still refuses foreign topics.
+- **Ceremony one-shots (executed 2026-07-27, steward-confirmed in-turn; single-shot guards now refuse re-runs):** `create-root.ts` · `create-authority-topics.ts` (all five §3.4 guards, no-admin-key asserted in the built transaction, `verifyAnchors` read-back) · `publish-witness-rules.ts` (publishes `rules/` — now the published source-of-record — with self-hashing `contentHash`, two-message pattern, keyless round-trip before success; idempotent by public state) · `grant-mandate.ts` · `revoke-mandate.ts`.
+- **Terms one-shots (executed 2026-07-28):** `create-terms-topic.ts` (WITNESS_TERMS `0.0.9815434`, admin-null at birth, submit = operator, mirror read-back) · `publish-terms.ts` (message one = the steward-ratified `docs/vending-terms.json`; prints the token-memo candidate with a 100-byte assertion — the successor wKEY's frozen memo resolves to this message).
+- `create-payer.ts` / `mcp-smoke.ts` — demo provisioning and the full storyline through the plugin's own handlers. mcp-smoke **auto-detects posture**: real operator env → single-process (in-process redeem pass); placeholder operator env (a customer clone) → waits on the operator's external `redeem:watch`, polling `witness_redeem_status`. The customer posture is the fix's verification standard — it is the exact posture that exposed the payTo bug.
+
+**`probes/`** — `probe-batch.ts`, the re-runnable falsifiability instrument for V-9 (an empirical network answer HIP-551 evolution could change), relocated out of the operational scripts.
 
 ---
 
@@ -235,9 +248,9 @@ V-1a (CLOSED: YES — literal HTTP 402 is the conformance surface) made this req
 
 ## 10. Verification state
 
-- 58/58 vitest (pinned + golden + crosscheck + claims + schema + reasons + mandate + attestation); `canonicalize.test.ts` and `golden.test.ts` byte-unmodified through every Phase 2 change — the additivity proof.
-- Both lanes end-to-end **twice**: raw scripts, then again through the MCP tool handlers (`mcp-smoke.ts`).
-- Wall + browser verifier validated headlessly against live topics: 2 tiles (×4, ×2), 1 verdict-tile, 2 invalid → no tile.
-- Full burn loop observed on-chain: mint-on-vend → fee-to-treasury → `total_supply: 0`.
-- ~25 HashScan links in `docs/evidence.md`, appended by the scripts that created them.
+- 74/74 vitest (pinned + golden + crosscheck + claims + schema + reasons + mandate + attestation + payment-terms + keystore + config); `canonicalize.test.ts` and `golden.test.ts` byte-unmodified through every change since the first stamp — the additivity proof.
+- Both lanes end-to-end through the MCP tool handlers in **three postures** (2026-07-28): operator (single-process regression), **customer** (fresh env, `OPERATOR_ID` left as the placeholder, live gateway, ORG's redeem watcher running separately — the posture that exposed the payTo bug, now the fix's standard), and offline fallback (no gateway URL → `config.witness.json` serves both tools).
+- The successor chain verified live the same day: terms message keyless-resolvable, token memo mirror-confirmed at 98 bytes, Lane B re-pegged and a full vend → newborn-stamp → keyless-verify chain green on the new KEY (newborn `0.0.9815538`).
+- Full burn loop observed on-chain (first issue): mint-on-vend → fee-to-treasury → `total_supply: 0`.
+- ~40 HashScan links in `docs/evidence.md`, appended by the operations that created them.
 - Invariant audit: `grep -r "Math.random" static/wall/js/` → only the comment asserting its absence; no payload-rendering path exists in wall code; live v0.8.3 topics and KEY `0.0.8644153` untouched (read-only fetches throughout).
