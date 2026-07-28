@@ -20,12 +20,12 @@ import {
   Hbar,
 } from "@hashgraph/sdk";
 import { getNetworkConfig } from "../../core/src/config.js";
-import { appendEvidence, hashscanEntity, hashscanTx, openOperatorClient, updateEnv } from "../../../scripts/lib/ops.js";
+import { appendEvidence, hashscanEntity, hashscanTx, openOperatorContext, updateEnv } from "../../ops/src/index.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function main() {
-  const { client } = openOperatorClient();
+  const { client } = openOperatorContext();
   const net = getNetworkConfig();
 
   const artifactPath = path.join(

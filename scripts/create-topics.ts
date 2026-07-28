@@ -24,11 +24,11 @@ import { CustomFixedFee, Hbar, TopicCreateTransaction } from "@hashgraph/sdk";
 // A revenue-generating (custom-fee) topic is priced ~$2 by the network — far
 // above the SDK default max fee. Cap generously; the network charges actuals.
 const MAX_CREATE_FEE = new Hbar(50);
-import { openOperatorClient, appendEvidence, hashscanEntity, hashscanTx, updateEnv } from "./lib/ops.js";
-import { PEG } from "./peg.js";
+import { openOperatorContext, appendEvidence, hashscanEntity, hashscanTx, updateEnv } from "../packages/ops/src/index.js";
+import { PEG } from "../packages/ops/src/peg.js";
 
 async function main() {
-  const { client, operatorId, operatorKey } = openOperatorClient();
+  const { client, operatorId, operatorKey } = openOperatorContext();
 
   const mk = async (memo: string, fee: CustomFixedFee) => {
     const tx = await new TopicCreateTransaction()

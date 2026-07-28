@@ -13,7 +13,7 @@
 import { TopicCreateTransaction } from "@hashgraph/sdk";
 import { getNetworkConfig } from "../packages/core/src/config.js";
 import { verifyAnchors } from "../packages/core/src/resolve.js";
-import { appendEvidence, hashscanEntity, hashscanTx, openOperatorClient, updateEnv } from "./lib/ops.js";
+import { appendEvidence, hashscanEntity, hashscanTx, openOperatorContext, updateEnv } from "../packages/ops/src/index.js";
 
 async function main() {
   // Guard 1 — single-shot.
@@ -24,7 +24,7 @@ async function main() {
     );
   }
 
-  const { client, operatorKey } = openOperatorClient();
+  const { client, operatorKey } = openOperatorContext();
 
   const tx = new TopicCreateTransaction().setTopicMemo("WITNESS_TERMS").setSubmitKey(operatorKey.publicKey);
   // Guard 2 — no admin key IN THE BUILT TRANSACTION, not just in the source.

@@ -19,7 +19,7 @@ import { TopicMessageSubmitTransaction } from "@hashgraph/sdk";
 import { canonicalizeJSON, computeContentHash, computeRuleUriHash } from "../packages/core/src/morpheme.js";
 import { buildHcsUri, resolveLatestRule, resolveRuleDef, type RuleDef } from "../packages/core/src/resolve.js";
 import { getAuthorityConfig, getNetworkConfig } from "../packages/core/src/config.js";
-import { appendEvidence, awaitMirrorMessage, consensusString, hashscanTx, openRootClient, readJson } from "./lib/ops.js";
+import { appendEvidence, waitForMirror, consensusString, hashscanTx, openRootContext, readJson } from "../packages/ops/src/index.js";
 
 const DRAFTS = ["rules/witness-lane-conformance.json", "rules/witness-delegation.json"];
 
@@ -30,7 +30,7 @@ async function main() {
   }
   const registry = auth.witnessRulesTopicId;
   const net = getNetworkConfig();
-  const { client, rootId } = openRootClient();
+  const { client, rootId } = openRootContext();
 
   for (const draftPath of DRAFTS) {
     const draft = readJson<RuleDef & Record<string, unknown>>(draftPath);
@@ -96,8 +96,8 @@ async function main() {
     // call it published. BOTH messages must be mirror-visible first: the
     // resolution path needs the registryEntry, not just the ruleDef (learned
     // live 2026-07-27 — a large ruleDef chunks, and the entry lags it).
-    await awaitMirrorMessage(net.mirrorNodeUrl, registry, defConsensus);
-    await awaitMirrorMessage(net.mirrorNodeUrl, registry, consensusString(entryRecord));
+    await waitForMirror(net.mirrorNodeUrl, registry, defConsensus);
+    await waitForMirror(net.mirrorNodeUrl, registry, consensusString(entryRecord));
     const resolvedUri = await resolveLatestRule(draft.ruleId, registry, { mirrorNodeUrl: net.mirrorNodeUrl });
     if (resolvedUri !== ruleUri) {
       throw new Error(`Read-back mismatch: registry resolves ${draft.ruleId} to ${resolvedUri}, expected ${ruleUri}.`);

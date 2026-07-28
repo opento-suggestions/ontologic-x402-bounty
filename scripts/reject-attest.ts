@@ -30,7 +30,7 @@ import { reasonText } from "../packages/core/src/reasons.js";
 import { buildRejectionAttestationV2 } from "../packages/core/src/schema.js";
 import { resolveMandate, resolveRule } from "../packages/core/src/resolve.js";
 import type { MirrorMessage } from "../packages/core/src/mirror.js";
-import { appendEvidence, awaitMirrorMessage, consensusString, hashscanTx, openOperatorClient } from "./lib/ops.js";
+import { appendEvidence, waitForMirror, consensusString, hashscanTx, openOperatorContext } from "../packages/ops/src/index.js";
 
 const CONFORMANCE_RULE_ID = "witness://org/verdict/lane-conformance";
 
@@ -41,9 +41,9 @@ async function main() {
     process.exit(1);
   }
 
-  // Kill-switch first, as everywhere: openOperatorClient runs assertTestnet
+  // Kill-switch first, as everywhere: openOperatorContext runs assertTestnet
   // before anything — including the mirror reads below — touches a network.
-  const { client, operatorId } = openOperatorClient();
+  const { client, operatorId } = openOperatorContext();
   const net = getNetworkConfig();
   const witness = getWitnessConfig();
   const auth = getAuthorityConfig();
@@ -132,7 +132,7 @@ async function main() {
 
   // 5. Read-back: OUR OWN verdict must survive the full W-11 chain from
   // public mirror data alone — the same judge every reader runs.
-  const own = await awaitMirrorMessage(net.mirrorNodeUrl, auth.verdictTopicId, consensus);
+  const own = await waitForMirror(net.mirrorNodeUrl, auth.verdictTopicId, consensus);
   const ownVerdict = await judgeMessage(own, auth.verdictTopicId, { mirrorNodeUrl: net.mirrorNodeUrl, ...anchors });
   if (ownVerdict.kind !== "rejection") {
     throw new Error(

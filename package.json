@@ -9,15 +9,14 @@
   ],
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/mcp",
-    "probe:vending": "tsx scripts/probe-vending.ts",
-    "probe:batch": "tsx scripts/probe-batch.ts",
+    "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/ops && tsc --noEmit -p packages/mcp",
+    "probe:batch": "tsx probes/probe-batch.ts",
     "create-topics": "tsx scripts/create-topics.ts",
     "peg": "tsx scripts/peg.ts",
     "stamp:lane-a": "tsx scripts/stamp-lane-a.ts",
     "smoke:lane-a": "tsx scripts/lane-a-smoke.ts",
     "smoke:lane-b": "tsx scripts/lane-b-smoke.ts",
-    "smoke:vend": "tsx scripts/vend-smoke.ts",
+    "smoke:mcp": "tsx scripts/mcp-smoke.ts",
     "redeem": "tsx scripts/redeem.ts",
     "redeem:watch": "tsx scripts/redeem.ts --watch",
     "reject-attest": "tsx scripts/reject-attest.ts",
@@ -25,6 +24,8 @@
     "ceremony:topics": "tsx scripts/create-authority-topics.ts",
     "ceremony:rules": "tsx scripts/publish-witness-rules.ts",
     "ceremony:grant": "tsx scripts/grant-mandate.ts",
+    "ceremony:terms-topic": "tsx scripts/create-terms-topic.ts",
+    "ceremony:terms": "tsx scripts/publish-terms.ts",
     "revoke-mandate": "tsx scripts/revoke-mandate.ts"
   },
   "dependencies": {

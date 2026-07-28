@@ -21,7 +21,7 @@
 import { PrivateKey, TopicCreateTransaction, type Client, type PublicKey } from "@hashgraph/sdk";
 import { getAuthorityConfig, getNetworkConfig } from "../packages/core/src/config.js";
 import { verifyAnchors } from "../packages/core/src/resolve.js";
-import { appendEvidence, hashscanEntity, hashscanTx, openOperatorClient, updateEnv } from "./lib/ops.js";
+import { appendEvidence, hashscanEntity, hashscanTx, openOperatorContext, updateEnv } from "../packages/ops/src/index.js";
 
 async function createImmutableTopic(client: Client, memo: string, submitKey: PublicKey): Promise<string> {
   const tx = new TopicCreateTransaction().setTopicMemo(memo).setSubmitKey(submitKey);
@@ -54,7 +54,7 @@ async function main() {
     throw new Error("ROOT_DER_KEY not set — run scripts/create-root.ts (ceremony §3.1) first.");
   }
 
-  const { client, operatorKey } = openOperatorClient();
+  const { client, operatorKey } = openOperatorContext();
   const rootKey = PrivateKey.fromStringDer(auth.rootDerKey);
 
   // Guard 2 — key distinctness, asserted before EITHER creation.

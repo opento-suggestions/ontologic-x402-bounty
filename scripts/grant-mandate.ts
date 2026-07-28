@@ -21,7 +21,7 @@ import { buildMandateMorpheme } from "../packages/core/src/schema.js";
 import { resolveRule } from "../packages/core/src/resolve.js";
 import { judgeMessage } from "../packages/core/src/verify.js";
 import { getAuthorityConfig, getNetworkConfig, getOperatorConfig } from "../packages/core/src/config.js";
-import { appendEvidence, awaitMirrorMessage, consensusString, hashscanTx, openRootClient, updateEnv } from "./lib/ops.js";
+import { appendEvidence, waitForMirror, consensusString, hashscanTx, openRootContext, updateEnv } from "../packages/ops/src/index.js";
 
 const DELEGATION_RULE_ID = "witness://org/authority/delegation";
 const THIRTY_DAYS_SEC = 30 * 24 * 60 * 60;
@@ -47,7 +47,7 @@ async function main() {
   const verdictTopic = auth.verdictTopicId;
   const operatorId = getOperatorConfig().id;
   const net = getNetworkConfig();
-  const { client, rootId } = openRootClient();
+  const { client, rootId } = openRootContext();
 
   const nowSec = Math.floor(Date.now() / 1000);
   const notBefore = toEpochSeconds(arg("not-before") ?? String(nowSec));
@@ -89,7 +89,7 @@ async function main() {
 
   // Read-back: the grant must judge as kind `mandate` from public mirror
   // data alone, with the same verifier every reader runs.
-  const msg = await awaitMirrorMessage(net.mirrorNodeUrl, registry, consensus);
+  const msg = await waitForMirror(net.mirrorNodeUrl, registry, consensus);
   const verdict = await judgeMessage(msg, registry, {
     mirrorNodeUrl: net.mirrorNodeUrl,
     witnessRegistryTopicId: registry,

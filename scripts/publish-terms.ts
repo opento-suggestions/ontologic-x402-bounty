@@ -14,7 +14,7 @@ import { TopicMessageSubmitTransaction } from "@hashgraph/sdk";
 import { canonicalizeJSON } from "../packages/core/src/morpheme.js";
 import { buildHcsUri } from "../packages/core/src/resolve.js";
 import { getNetworkConfig } from "../packages/core/src/config.js";
-import { appendEvidence, awaitMirrorMessage, consensusString, hashscanTx, openOperatorClient, readJson, updateEnv } from "./lib/ops.js";
+import { appendEvidence, waitForMirror, consensusString, hashscanTx, openOperatorContext, readJson, updateEnv } from "../packages/ops/src/index.js";
 
 function memoCandidate(uri: string): string {
   return `Vends KEY+testimony genesis for reasoning-trace stamps. ORG ${uri}`;
@@ -42,14 +42,14 @@ async function main() {
   const bytes = Buffer.from(canonicalizeJSON(terms), "utf8");
   console.log(`Publishing vending terms (${bytes.length} bytes${bytes.length > 1024 ? " — WILL CHUNK" : ", single message"})...`);
 
-  const { client } = openOperatorClient();
+  const { client } = openOperatorContext();
   const tx = await new TopicMessageSubmitTransaction().setTopicId(topicId).setMessage(bytes).execute(client);
   const record = await tx.getRecord(client);
   const consensus = consensusString(record);
   console.log(`  tx: ${hashscanTx(tx.transactionId.toString())}`);
 
   // Read-back: the memo must point at a message anyone can fetch keylessly.
-  await awaitMirrorMessage(net.mirrorNodeUrl, topicId, consensus);
+  await waitForMirror(net.mirrorNodeUrl, topicId, consensus);
   const uri = buildHcsUri(topicId, consensus);
   console.log(`  terms URI: ${uri}`);
 

@@ -28,7 +28,7 @@ import { judgeMessage } from "../packages/core/src/verify.js";
 import { buildRejectionAttestationV2 } from "../packages/core/src/schema.js";
 import { resolveMandate, resolveRule } from "../packages/core/src/resolve.js";
 import { fetchAllTopicMessages, type MirrorMessage } from "../packages/core/src/mirror.js";
-import { appendEvidence, awaitMirrorMessage, consensusString, hashscanTx, openOperatorClient } from "./lib/ops.js";
+import { appendEvidence, waitForMirror, consensusString, hashscanTx, openOperatorContext } from "../packages/ops/src/index.js";
 
 const CONFORMANCE_RULE_ID = "witness://org/verdict/lane-conformance";
 
@@ -39,7 +39,7 @@ async function main() {
     process.exit(1);
   }
 
-  const { client, operatorId } = openOperatorClient();
+  const { client, operatorId } = openOperatorContext();
   const net = getNetworkConfig();
   const witness = getWitnessConfig();
   const auth = getAuthorityConfig();
@@ -106,7 +106,7 @@ async function main() {
   console.log(`  tx: ${link}`);
 
   // The demonstration: every reader's verifier condemns it, keyless.
-  const own = await awaitMirrorMessage(net.mirrorNodeUrl, auth.verdictTopicId, consensus);
+  const own = await waitForMirror(net.mirrorNodeUrl, auth.verdictTopicId, consensus);
   const verdict = await judgeMessage(own, auth.verdictTopicId, { mirrorNodeUrl: net.mirrorNodeUrl });
   console.log(`  verifier says: kind=${verdict.kind} reasons=[${verdict.reasons.join(", ")}]`);
   if (verdict.kind !== "invalid" || !verdict.reasons.includes("mandate.out-of-window")) {

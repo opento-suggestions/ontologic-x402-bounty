@@ -209,6 +209,6 @@ export async function resolvePaymentTerms(opts: {
     `Cannot resolve payment terms (payTo/amount) for ${want.scheme}/${want.network}/${want.asset}. ` +
       `Tried: (1) the 402 challenge — ${challengeNote}. (2) config.witness.json — ${configNote}. ` +
       `Fix: run witness_requirements with WITNESS_REQUIREMENTS_URL set, or restore config.witness.json ` +
-      `(the operator regenerates it with scripts/emit-requirements.ts).`,
+      `(the operator regenerates it with npm run peg).`,
   );
 }

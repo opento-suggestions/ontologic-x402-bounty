@@ -35,8 +35,8 @@ import { getNetworkConfig, getSphereConfig, getWitnessConfig } from "../packages
 import { buildWhiteTraceClaim, buildStampForClaim } from "../packages/core/src/claims.js";
 import { judgeMessage } from "../packages/core/src/verify.js";
 import type { MirrorMessage } from "../packages/core/src/mirror.js";
-import { appendEvidence, hashscanEntity, hashscanTx, openOperatorClient } from "./lib/ops.js";
-import { PEG } from "./peg.js";
+import { appendEvidence, hashscanEntity, hashscanTx, openOperatorContext } from "../packages/ops/src/index.js";
+import { PEG } from "../packages/ops/src/peg.js";
 
 const FUND_HBAR = 10;
 
@@ -50,7 +50,7 @@ async function mirrorJson<T>(url: string, tries = 20): Promise<T | null> {
 }
 
 async function main() {
-  const { client, operatorId } = openOperatorClient();
+  const { client, operatorId } = openOperatorContext();
   const net = getNetworkConfig();
   const sphere = getSphereConfig();
   const witness = getWitnessConfig();

@@ -17,7 +17,7 @@
 
 import { AccountCreateTransaction, Hbar, PrivateKey } from "@hashgraph/sdk";
 import { getAuthorityConfig, getNetworkConfig } from "../packages/core/src/config.js";
-import { appendEvidence, hashscanEntity, hashscanTx, openOperatorClient, updateEnv } from "./lib/ops.js";
+import { appendEvidence, hashscanEntity, hashscanTx, openOperatorContext, updateEnv } from "../packages/ops/src/index.js";
 
 async function main() {
   // Guard 1 — single-shot: an existing root is never silently replaced.
@@ -28,7 +28,7 @@ async function main() {
     );
   }
 
-  const { client, operatorId, operatorKey } = openOperatorClient();
+  const { client, operatorId, operatorKey } = openOperatorContext();
 
   // Guard 2 — the new key must differ from the operator's (W-11's disjoint powers).
   const rootKey = PrivateKey.generateED25519();

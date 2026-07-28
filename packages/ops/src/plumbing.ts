@@ -1,55 +1,19 @@
 /**
- * ops.ts — shared plumbing for the testnet operation scripts.
+ * plumbing.ts — shared testnet plumbing for every keyed operation.
  *
- * Every script calls assertTestnet() before opening a client (the kill-switch),
- * appends its on-chain actions to docs/evidence.md as it goes (the bounty's
- * link collection is a side effect of running, not a chore), and persists new
- * entity IDs back into .env so later scripts pick them up.
+ * Every on-chain action appends to docs/evidence.md as it goes (the link
+ * collection is a side effect of running, not a chore), and new entity IDs
+ * persist back into .env so later operations pick them up.
  */
 
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { Client, Hbar, PrivateKey, type TransactionRecord } from "@hashgraph/sdk";
-import { assertTestnet, getAuthorityConfig, getOperatorConfig } from "../../packages/core/src/config.js";
-import type { MirrorMessage } from "../../packages/core/src/mirror.js";
+import type { TransactionRecord } from "@hashgraph/sdk";
+import type { MirrorMessage } from "../../core/src/mirror.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-export const REPO_ROOT = path.resolve(__dirname, "..", "..");
-
-export function openOperatorClient(): { client: Client; operatorId: string; operatorKey: PrivateKey } {
-  assertTestnet();
-  const op = getOperatorConfig();
-  const operatorKey = PrivateKey.fromStringDer(op.derKey);
-  const client = Client.forTestnet().setOperator(op.id, operatorKey);
-  // Testnet's exchange rate (~6.6¢/HBAR) makes USD-priced fees large in HBAR;
-  // SDK defaults undershoot. Cap generously — the network charges actuals.
-  client.setDefaultMaxTransactionFee(new Hbar(50));
-  return { client, operatorId: op.id, operatorKey };
-}
-
-/**
- * The ROOT client (Phase 2, W-11). Root holds the Witness Rule Registry's
- * submit key and NOTHING else — it writes mandates, revocations, and the
- * witness RuleDefs, and it must be a different key from the operator's
- * (asserted here on every open, not just at creation).
- */
-export function openRootClient(): { client: Client; rootId: string; rootKey: PrivateKey } {
-  assertTestnet();
-  const auth = getAuthorityConfig();
-  if (!auth.rootId || !auth.rootDerKey) {
-    throw new Error("ROOT_ID / ROOT_DER_KEY not set — run scripts/create-root.ts (ceremony §3.1) first.");
-  }
-  const rootKey = PrivateKey.fromStringDer(auth.rootDerKey);
-  const op = getOperatorConfig();
-  const operatorPub = PrivateKey.fromStringDer(op.derKey).publicKey.toStringRaw().toLowerCase();
-  if (rootKey.publicKey.toStringRaw().toLowerCase() === operatorPub) {
-    throw new Error("ROOT key equals OPERATOR key — the two-key structure is the invariant (W-11). Refusing.");
-  }
-  const client = Client.forTestnet().setOperator(auth.rootId, rootKey);
-  client.setDefaultMaxTransactionFee(new Hbar(50));
-  return { client, rootId: auth.rootId, rootKey };
-}
+export const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 
 /** Record consensus timestamp → mirror-style "seconds.nanos" string. */
 export function consensusString(record: TransactionRecord): string {
@@ -61,8 +25,9 @@ export function consensusString(record: TransactionRecord): string {
  * Wait out mirror lag (3–7s on testnet, V-7) for the message at an EXACT
  * consensus timestamp — mirror's `timestamp=` filter is >=, so equality is
  * asserted or the next message could impersonate the one we wrote.
+ * The ONE mirror-poll loop; hand-rolled copies are the bug farm this replaced.
  */
-export async function awaitMirrorMessage(
+export async function waitForMirror(
   mirrorNodeUrl: string,
   topicId: string,
   consensusTimestamp: string,
@@ -75,9 +40,23 @@ export async function awaitMirrorMessage(
       const msg = data.messages?.[0];
       if (msg && msg.consensus_timestamp === consensusTimestamp) return msg;
     }
-    await new Promise((r) => setTimeout(r, 2000));
+    await sleep(2000);
   }
   throw new Error(`Mirror never showed ${topicId} @ ${consensusTimestamp} after ${tries} tries.`);
+}
+
+/** Fetch JSON off the mirror with bounded retries; null when it never appears. */
+export async function mirrorJson<T>(url: string, tries = 10, delayMs = 2000): Promise<T | null> {
+  for (let i = 0; i < tries; i++) {
+    const resp = await fetch(url);
+    if (resp.ok) return (await resp.json()) as T;
+    await sleep(delayMs);
+  }
+  return null;
+}
+
+export function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
 }
 
 export function hashscanTx(txId: string): string {

@@ -8,12 +8,12 @@
  */
 
 import { AccountCreateTransaction, Hbar, PrivateKey } from "@hashgraph/sdk";
-import { appendEvidence, hashscanEntity, hashscanTx, openOperatorClient, updateEnv } from "./lib/ops.js";
+import { appendEvidence, hashscanEntity, hashscanTx, openOperatorContext, updateEnv } from "../packages/ops/src/index.js";
 
 const FUND_HBAR = 60;
 
 async function main() {
-  const { client } = openOperatorClient();
+  const { client } = openOperatorContext();
 
   const payerKey = PrivateKey.generateECDSA();
   const tx = await new AccountCreateTransaction()

@@ -1,35 +1,21 @@
 /**
- * stamp.ts — the witness itself.
+ * stamp.ts — the witness itself, as a thin adapter over the ops engine
+ * (packages/ops/src/stamp.ts — the same stampLane every frontend drives).
  *
- * Lane A: the payer-agent signs one TopicMessageSubmitTransaction to the
- *   HBAR-fee topic. HIP-991 charges the published fee AS the message records:
- *   payment and testimony are the same transaction (W-1).
- * Lane B: the NEWBORN signs its own stamp to the KEY-fee topic, paying
- *   1 wKEY, which flows to the treasury-in-code and is burned (D-3).
- *
- * Both lanes set max-custom-fee protection at exactly the published price ×2
- * (a re-peg cannot ambush the payer). The signer is always the testifier —
- * no ORG key is in this process (W-2).
+ * Lane A: the payer-agent signs; HIP-991 charges the published fee AS the
+ *   message records (W-1). Lane B: the NEWBORN signs its own stamp, paying
+ *   1 wKEY. The signer is always the testifier — no ORG key is in this
+ *   process (W-2), and the context constructors bake in assertTestnet().
  */
 
-import {
-  Client,
-  CustomFeeLimit,
-  CustomFixedFee,
-  Hbar,
-  PrivateKey,
-  TokenId,
-  TopicMessageSubmitTransaction,
-} from "@hashgraph/sdk";
-import { canonicalizeJSON } from "../../../core/src/morpheme.js";
-import { assertTestnet, getNetworkConfig, getSphereConfig, getWitnessConfig } from "../../../core/src/config.js";
-import { buildWhiteTraceClaim, buildStampForClaim, describeClaim, type WhiteTraceDomain } from "../../../core/src/claims.js";
+import { openNewbornContext, openPayerContext } from "../../../ops/src/customer.js";
+import { stampLane } from "../../../ops/src/stamp.js";
+import type { TestimonyContext } from "../../../ops/src/contexts.js";
+import { describeClaim, type WhiteTraceDomain } from "../../../core/src/claims.js";
 import type { StatusValue } from "../../../core/src/schema.js";
 import { getPayerConfig } from "../env.js";
-import { latestNewborn, newbornKey } from "../state/keystore.js";
-import { hashscanTx } from "../hashscan.js";
+import { latestNewborn } from "../state/keystore.js";
 import { ok, fail, type ToolResult } from "../channels.js";
-import { PEG } from "../../../../scripts/peg.js";
 
 export async function handleStamp(
   lane: string,
@@ -37,89 +23,44 @@ export async function handleStamp(
   status?: string,
   statusNote?: string,
 ): Promise<ToolResult> {
-  const net = getNetworkConfig();
-  const sphere = getSphereConfig();
-  const witness = getWitnessConfig();
-
-  let client: Client | null = null;
+  let ctx: TestimonyContext | null = null;
   try {
-    assertTestnet(); // before any Client opens — this handler is also driven directly, without index.ts
-
-    // Who testifies, and on which topic.
-    let signerId: string;
-    let signerKey: PrivateKey;
-    let topicId: string;
-    let feeLimitFee: CustomFixedFee;
-
     if (lane === "A") {
-      if (!witness.hbarTopicId) return fail("WITNESS_HBAR_TOPIC_ID not configured.");
-      const payer = getPayerConfig();
-      signerId = payer.id;
-      signerKey = PrivateKey.fromStringDer(payer.derKey);
-      topicId = witness.hbarTopicId;
-      feeLimitFee = new CustomFixedFee().setHbarAmount(Hbar.fromTinybars(PEG.laneA.feeTinybar * 2));
+      ctx = openPayerContext(getPayerConfig());
     } else if (lane === "B") {
-      if (!witness.keyTopicId || !witness.keyTokenId) return fail("Lane B topic/token not configured.");
       const newborn = latestNewborn();
       if (!newborn?.accountId) {
         return fail("Newborn has no account yet. witness_pay → witness_redeem_status first.");
       }
-      signerId = newborn.accountId;
-      signerKey = newbornKey(newborn.alias);
-      topicId = witness.keyTopicId;
-      feeLimitFee = new CustomFixedFee()
-        .setAmount(PEG.laneB.feeKey)
-        .setDenominatingTokenId(TokenId.fromString(witness.keyTokenId));
+      ctx = openNewbornContext({ accountId: newborn.accountId, alias: newborn.alias, derKey: newborn.derKey });
     } else {
       return fail(`Unknown lane: ${lane}. Lanes are "A" (native HBAR) and "B" (premium KEY).`);
     }
 
-    // Build the claim fresh from the live taxonomy (W-9 gate) and wrap it.
-    const claim = await buildWhiteTraceClaim({
+    const stamped = await stampLane(ctx, {
+      lane,
       domain: domain as WhiteTraceDomain,
-      registryTopicId: sphere.ruleRegistryTopicId,
-      proofTopicId: sphere.proofTopicId,
-      resolve: { mirrorNodeUrl: net.mirrorNodeUrl },
-    });
-    const stamp = buildStampForClaim({
-      claim,
-      callerAccountId: signerId,
-      createdAt: new Date().toISOString(),
       status: status as StatusValue | undefined,
       statusNote,
     });
-
-    client = Client.forTestnet().setOperator(signerId, signerKey);
-    client.setDefaultMaxTransactionFee(new Hbar(10));
-    const feeLimit = new CustomFeeLimit().setAccountId(signerId).setFees([feeLimitFee]);
-    const tx = await new TopicMessageSubmitTransaction()
-      .setTopicId(topicId)
-      .setMessage(Buffer.from(canonicalizeJSON(stamp), "utf8"))
-      .setCustomFeeLimits([feeLimit])
-      .execute(client);
-    const record = await tx.getRecord(client);
-    const consensus = `${record.consensusTimestamp.seconds}.${record.consensusTimestamp.nanos
-      .toString()
-      .padStart(9, "0")}`;
-    const txId = tx.transactionId.toString();
 
     return ok(
       {
         stamped: true,
         lane,
-        claimIdentity: describeClaim(claim.domain),
-        signer: signerId,
-        topicId,
-        consensusTimestamp: consensus,
-        bindingHash: claim.bindingHash,
-        hashscan: hashscanTx(txId),
-        next: `witness_verify consensusTimestamp=${consensus} lane=${lane} — anyone can re-check this keylessly`,
+        claimIdentity: describeClaim(stamped.claim.domain),
+        signer: stamped.signerAccountId,
+        topicId: stamped.topicId,
+        consensusTimestamp: stamped.consensusTimestamp,
+        bindingHash: stamped.claim.bindingHash,
+        hashscan: stamped.hashscan,
+        next: `witness_verify consensusTimestamp=${stamped.consensusTimestamp} lane=${lane} — anyone can re-check this keylessly`,
       },
-      { stamp: stamp as unknown as Record<string, unknown>, transactionId: txId },
+      { stamp: stamped.stamp as unknown as Record<string, unknown>, transactionId: stamped.transactionId },
     );
   } catch (err) {
     return fail(`Stamp failed: ${(err as Error).message}`);
   } finally {
-    client?.close();
+    ctx?.client.close();
   }
 }

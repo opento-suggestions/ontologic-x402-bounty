@@ -37,7 +37,7 @@ export async function handleRequirements(): Promise<ToolResult> {
   if (!cfg?.requirements) {
     return fail(
       "No gateway configured (WITNESS_REQUIREMENTS_URL) and config.witness.json was not found. " +
-        "The repo ships this file; the operator regenerates it with scripts/emit-requirements.ts.",
+        "The repo ships this file; the operator regenerates it with npm run peg.",
     );
   }
   return ok(

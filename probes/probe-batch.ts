@@ -29,12 +29,12 @@ import {
   TopicMessageSubmitTransaction,
 } from "@hashgraph/sdk";
 import { getNetworkConfig, getWitnessConfig } from "../packages/core/src/config.js";
-import { openOperatorClient, appendEvidence, hashscanTx, hashscanEntity } from "./lib/ops.js";
+import { openOperatorContext, appendEvidence, hashscanTx, hashscanEntity } from "../packages/ops/src/index.js";
 
 const FUND_HBAR = 5;
 
 async function main() {
-  const { client, operatorId, operatorKey } = openOperatorClient();
+  const { client, operatorId, operatorKey } = openOperatorContext();
   const net = getNetworkConfig();
   const witness = getWitnessConfig();
   if (!witness.hbarTopicId) throw new Error("WITNESS_HBAR_TOPIC_ID not set — run create-topics first.");

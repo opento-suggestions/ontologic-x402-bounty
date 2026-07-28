@@ -15,7 +15,7 @@ import { canonicalizeJSON } from "../packages/core/src/morpheme.js";
 import { buildMandateRevocation } from "../packages/core/src/schema.js";
 import { resolveMandate } from "../packages/core/src/resolve.js";
 import { getAuthorityConfig, getNetworkConfig } from "../packages/core/src/config.js";
-import { appendEvidence, awaitMirrorMessage, consensusString, hashscanTx, openRootClient } from "./lib/ops.js";
+import { appendEvidence, waitForMirror, consensusString, hashscanTx, openRootContext } from "../packages/ops/src/index.js";
 
 async function main() {
   const auth = getAuthorityConfig();
@@ -36,7 +36,7 @@ async function main() {
   console.log(`Revoking mandate ${mandateHash}`);
   console.log(`  grantee: ${resolved.mandate.grantee} · window was [${resolved.mandate.notBefore}, ${resolved.mandate.notAfter})`);
 
-  const { client, rootId } = openRootClient();
+  const { client, rootId } = openRootContext();
   const revocation = buildMandateRevocation({ mandateHash, revokedBy: rootId, createdAt: new Date().toISOString() });
   const tx = await new TopicMessageSubmitTransaction()
     .setTopicId(registry)
@@ -44,7 +44,7 @@ async function main() {
     .execute(client);
   const record = await tx.getRecord(client);
   const consensus = consensusString(record);
-  await awaitMirrorMessage(net.mirrorNodeUrl, registry, consensus);
+  await waitForMirror(net.mirrorNodeUrl, registry, consensus);
 
   console.log(`  revoked @ ${consensus}`);
   console.log(`  tx: ${hashscanTx(tx.transactionId.toString())}`);
