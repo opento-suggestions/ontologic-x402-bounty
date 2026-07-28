@@ -6,7 +6,7 @@ HTTP 402 is *Payment Required*. This service adds the missing sibling: an agent 
 
 Steward: Ontologic Reclamation Group (ORG). Testnet only. See [LIMITATIONS.md](LIMITATIONS.md) for exactly what is and is not attested.
 
-## Two lanes, one record
+## Two lanes, one record (Phase 1)
 
 - **Lane A — native (discounted).** A Hedera account signs one `TopicMessageSubmitTransaction` carrying the morpheme; the HIP-991 fixed HBAR fee is charged *as* the message is recorded. Payment and stamp are one atomic consensus event.
 - **Lane B — premium (genesis + witness).** An off-chain agent with no Hedera account pays $0.50 USDC through x402 into the vending machine — priced to cover the 3 HBAR of funding the vend delivers, itemized at-cost + visible margin in the peg (`packages/ops/src/peg.ts`, D-2 as amended 2026-07-27). The same call funds the agent's key alias into existence, delivers 1 KEY, and includes gas for the newborn account. The newborn signs its own stamp to the KEY-fee topic; the consumed KEY is burned. Every premium customer exits holding their own Hedera key.
