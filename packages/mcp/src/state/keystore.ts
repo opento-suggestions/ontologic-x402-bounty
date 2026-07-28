@@ -10,6 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { PrivateKey } from "@hashgraph/sdk";
 import { stateDir } from "../env.js";
+import type { StoredChallenge } from "../payment-terms.js";
 
 export interface NewbornEntry {
   alias: string; // 0x EVM alias
@@ -20,6 +21,8 @@ export interface NewbornEntry {
 
 interface KeystoreFile {
   newborns: NewbornEntry[];
+  /** The last 402 challenge witness_requirements fetched — witness_pay consumes it. */
+  challenge?: StoredChallenge;
 }
 
 function keystorePath(): string {
@@ -69,6 +72,17 @@ export function recordAccountId(alias: string, accountId: string): void {
     entry.accountId = accountId;
     save(data);
   }
+}
+
+/** Persist the challenge the way genesis state is persisted — the pay tool reads it back. */
+export function recordChallenge(challenge: StoredChallenge): void {
+  const data = load();
+  data.challenge = challenge;
+  save(data);
+}
+
+export function latestChallenge(): StoredChallenge | null {
+  return load().challenge ?? null;
 }
 
 /** The signing key, for the stamp tool only. Never returned on a channel. */

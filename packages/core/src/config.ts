@@ -62,10 +62,22 @@ export interface WitnessConfig {
   usdcTokenId: string | null;
 }
 
+/**
+ * True for .env.example-style placeholders: "<...>" stubs and runs of x/X
+ * (0.0.XXXXXXX, 0x0000…xxxxxx). Real values never match — account ids are
+ * digits and dots, and DER/hex keys and EVM addresses are hex digits after
+ * their prefix, where x is not a hex digit.
+ */
+export function isPlaceholder(value: string): boolean {
+  return value.startsWith("<") || /[xX]{3,}/.test(value);
+}
+
 function required(name: string): string {
   const value = process.env[name];
-  if (!value || value.startsWith("<")) {
-    throw new Error(`Missing required env var ${name}. Copy .env.example to .env and fill it in.`);
+  if (!value || isPlaceholder(value)) {
+    throw new Error(
+      `Env var ${name} is unset or still the .env.example placeholder. Copy .env.example to .env and fill in a real value.`,
+    );
   }
   return value;
 }

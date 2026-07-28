@@ -22,17 +22,14 @@ import {
   TopicMessageSubmitTransaction,
 } from "@hashgraph/sdk";
 import { canonicalizeJSON } from "../../../core/src/morpheme.js";
-import { getNetworkConfig, getSphereConfig, getWitnessConfig } from "../../../core/src/config.js";
+import { assertTestnet, getNetworkConfig, getSphereConfig, getWitnessConfig } from "../../../core/src/config.js";
 import { buildWhiteTraceClaim, buildStampForClaim, describeClaim, type WhiteTraceDomain } from "../../../core/src/claims.js";
 import type { StatusValue } from "../../../core/src/schema.js";
 import { getPayerConfig } from "../env.js";
 import { latestNewborn, newbornKey } from "../state/keystore.js";
+import { hashscanTx } from "../hashscan.js";
 import { ok, fail, type ToolResult } from "../channels.js";
 import { PEG } from "../../../../scripts/peg.js";
-
-function hashscanTx(txId: string): string {
-  return `https://hashscan.io/testnet/transaction/${txId.replace("@", "-").replace(/\.(\d+)$/, "-$1")}`;
-}
 
 export async function handleStamp(
   lane: string,
@@ -46,6 +43,8 @@ export async function handleStamp(
 
   let client: Client | null = null;
   try {
+    assertTestnet(); // before any Client opens — this handler is also driven directly, without index.ts
+
     // Who testifies, and on which topic.
     let signerId: string;
     let signerKey: PrivateKey;

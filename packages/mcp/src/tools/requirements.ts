@@ -2,58 +2,51 @@
  * requirements.ts — the Payment Required moment (demo beat 2, W-7).
  *
  * Fetches the published PaymentRequirements. Preference order:
- *   1. WITNESS_REQUIREMENTS_URL (the live orchestrator page's JSON — if a
- *      literal-402 gateway is configured it IS that gateway's 402 body)
- *   2. Local reconstruction from the same peg constants the topics charge —
- *      one price authority, so the published list cannot drift from the fees.
+ *   1. WITNESS_REQUIREMENTS_URL (a literal-402 gateway's body). The fetched
+ *      challenge is persisted to the keystore so witness_pay consumes THESE
+ *      terms — the client never invents its own.
+ *   2. config.witness.json at the repo root — the deploy-time artifact
+ *      emit-requirements writes from the peg, for offline operation.
+ * The operator's environment is never consulted: this process is the payer.
  */
 
-import { getWitnessConfig, getOperatorConfig } from "../../../core/src/config.js";
-import { buildPaymentRequirements } from "../../../../scripts/peg.js";
+import { fetchGatewayChallenge, readWitnessConfig } from "../payment-terms.js";
+import { recordChallenge } from "../state/keystore.js";
 import { ok, fail, type ToolResult } from "../channels.js";
 
 export async function handleRequirements(): Promise<ToolResult> {
   const url = process.env.WITNESS_REQUIREMENTS_URL;
   if (url) {
     try {
-      const resp = await fetch(url);
-      // A literal 402 response IS the x402 conformance surface — read its body.
-      if (resp.status === 402 || resp.ok) {
-        const body = (await resp.json()) as Record<string, unknown>;
-        return ok(
-          {
-            paymentRequired: true,
-            source: `${url} (HTTP ${resp.status})`,
-            lanes: body.lanes ?? body,
-          },
-          body,
-        );
-      }
-      return fail(`Requirements endpoint returned HTTP ${resp.status}`);
+      const challenge = await fetchGatewayChallenge(url);
+      recordChallenge(challenge);
+      return ok(
+        {
+          paymentRequired: true,
+          source: challenge.source,
+          lanes: challenge.body.lanes ?? challenge.body,
+        },
+        challenge.body,
+      );
     } catch (err) {
-      return fail(`Requirements endpoint unreachable: ${(err as Error).message}`);
+      return fail((err as Error).message);
     }
   }
 
-  const witness = getWitnessConfig();
-  if (!witness.hbarTopicId || !witness.keyTopicId) {
-    return fail("Lane topics not configured (WITNESS_HBAR_TOPIC_ID / WITNESS_KEY_TOPIC_ID).");
+  const cfg = readWitnessConfig();
+  if (!cfg?.requirements) {
+    return fail(
+      "No gateway configured (WITNESS_REQUIREMENTS_URL) and config.witness.json was not found. " +
+        "The repo ships this file; the operator regenerates it with scripts/emit-requirements.ts.",
+    );
   }
-  // Treasury = ORG operator account (public coordinate, not a secret).
-  const treasury = process.env.OPERATOR_ID ?? getOperatorConfig().id;
-  const requirements = buildPaymentRequirements({
-    hbarTopicId: witness.hbarTopicId,
-    keyTopicId: witness.keyTopicId,
-    keyTokenId: witness.keyTokenId,
-    treasuryAccountId: treasury,
-  });
   return ok(
     {
       paymentRequired: true,
-      source: "local peg (single price authority)",
-      lanes: requirements.lanes,
-      vending: requirements.vending,
+      source: "config.witness.json (deploy-time artifact)",
+      lanes: cfg.requirements.lanes,
+      vending: cfg.requirements.vending,
     },
-    requirements as unknown as Record<string, unknown>,
+    cfg.requirements as Record<string, unknown>,
   );
 }

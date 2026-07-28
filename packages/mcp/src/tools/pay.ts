@@ -3,7 +3,13 @@
  *
  * Per the Hedera exact scheme (verify-log V-1): the payment is a plain native
  * TransferTransaction from the payer's funding account to the published
- * payTo. Two settlement modes:
+ * payTo. The terms (payTo, amount, asset) are CONSUMED from the 402 challenge
+ * witness_requirements fetched — refetched if older than the challenge's own
+ * maxTimeoutSeconds — falling back to config.witness.json for offline
+ * operation. The operator's environment is never consulted: this process is
+ * the payer, and a customer clone has no OPERATOR_ID.
+ *
+ * Two settlement modes:
  *
  *   facilitator (FACILITATOR_URL set) — the conformant wire flow: the payer
  *     PARTIALLY signs (fee payer left open), base64-encodes, and POSTs to the
@@ -28,19 +34,19 @@ import {
   TransactionId,
   TransferTransaction,
 } from "@hashgraph/sdk";
-import { getNetworkConfig, getWitnessConfig, getOperatorConfig } from "../../../core/src/config.js";
-import { PEG } from "../../../../scripts/peg.js";
+import { assertTestnet } from "../../../core/src/config.js";
+import { resolvePaymentTerms, type ResolvedTerms } from "../payment-terms.js";
 import { getPayerConfig } from "../env.js";
-import { latestNewborn } from "../state/keystore.js";
+import { latestNewborn, latestChallenge, recordChallenge } from "../state/keystore.js";
+import { hashscanTx } from "../hashscan.js";
 import { ok, fail, type ToolResult } from "../channels.js";
 
-function hashscanTx(txId: string): string {
-  return `https://hashscan.io/testnet/transaction/${txId.replace("@", "-").replace(/\.(\d+)$/, "-$1")}`;
-}
-
 export async function handlePay(aliasArg?: string): Promise<ToolResult> {
-  const net = getNetworkConfig();
-  const witness = getWitnessConfig();
+  try {
+    assertTestnet();
+  } catch (err) {
+    return fail((err as Error).message);
+  }
   const payer = getPayerConfig();
 
   const alias = aliasArg ?? latestNewborn()?.alias;
@@ -48,15 +54,23 @@ export async function handlePay(aliasArg?: string): Promise<ToolResult> {
     return fail("No testimony alias. Run witness_genesis first (Lane B pays FOR a genesis).");
   }
 
-  const treasury = process.env.OPERATOR_ID ?? getOperatorConfig().id;
-  const amountTinybar = Math.round((PEG.vending.priceUsd / PEG.hbarUsd) * 1e8); // current vending price at the peg (peg.ts, D-2 as amended)
+  let resolved: ResolvedTerms;
+  try {
+    resolved = await resolvePaymentTerms({ stored: latestChallenge() });
+  } catch (err) {
+    return fail((err as Error).message);
+  }
+  if (resolved.challenge) recordChallenge(resolved.challenge); // a refetch keeps the handoff current
+
+  const treasury = resolved.terms.payTo;
+  const amountTinybar = Number(resolved.terms.amount);
   const payerKey = PrivateKey.fromStringDer(payer.derKey);
 
   const requirements = {
-    scheme: "exact",
-    network: "hedera:testnet",
-    amount: String(amountTinybar),
-    asset: "0.0.0",
+    scheme: resolved.terms.scheme,
+    network: resolved.terms.network,
+    amount: resolved.terms.amount,
+    asset: resolved.terms.asset,
     payTo: treasury,
     memo: `x402:witness-required:vend:${alias}`,
   };
@@ -89,6 +103,7 @@ export async function handlePay(aliasArg?: string): Promise<ToolResult> {
         {
           settled: true,
           mode: "facilitator (fee-payer sponsored)",
+          paymentTermsSource: resolved.source,
           requirements,
           receipt,
           next: "witness_redeem_status — ORG's vend redeems this receipt into genesis + 1 wKEY",
@@ -113,6 +128,7 @@ export async function handlePay(aliasArg?: string): Promise<ToolResult> {
       {
         settled: true,
         mode: "direct (self-sponsored settlement — no facilitator configured)",
+        paymentTermsSource: resolved.source,
         requirements,
         receipt: { transactionId: txId, consensusTimestamp: consensus, hashscan: hashscanTx(txId) },
         next: "witness_redeem_status — ORG's vend redeems this receipt into genesis + 1 wKEY",
