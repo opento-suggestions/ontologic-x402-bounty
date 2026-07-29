@@ -20,6 +20,21 @@ Dated findings for the spec's V-series items. Each entry names the design branch
 
 ## Entries
 
+### 2026-07-29 — the USDC leg opens (associations + first live settlement)
+
+The challenge had advertised a Hedera-USDC accepts entry (Circle testnet USDC `0.0.429274`, `500000` six-decimal units) since 2026-07-19 that nothing could settle: the treasury was never associated with the token, and the client had no leg selection. Both closed in one sitting, steward-gated:
+
+| Event | Value |
+|-------|-------|
+| Treasury `0.0.8641261` associated with `0.0.429274` | `0.0.8641261-1785339446-074763615` |
+| Test payer `0.0.9646033` associated (payer-signed) + Circle faucet drip (20 USDC) | `0.0.9646033-1785339460-117689560` |
+| First live USDC settlement — customer posture, terms consumed from the live 402 challenge | receipt `0.0.9646033-1785339990-596117867` (500000 × `0.0.429274`, vend memo intact) |
+| Watcher redeemed the USDC receipt → genesis + 1 wKEY | newborn `0.0.9830333`; Lane B stamp `1785340021.703061158`, verdict valid |
+
+**Price-era finding:** git history shows the USDC entry was advertised at `10_000` units ($0.01) before the 2026-07-27 reprice — but an unassociated treasury cannot receive token transfers, so **no USDC receipt can predate the current price**. The USDC matcher therefore carries a single era (the published `priceUsdcSmallest`, verbatim); if USDC is ever repriced, eras get added under the same never-orphan-history rule the HBAR leg already follows.
+
+**Non-regression:** the HBAR leg ran the operator-posture smoke unchanged (default leg untouched; the HBAR transfer construction is the pre-existing branch verbatim). The redeem watcher honors either receipt through one predicate (`vendReceiptFrom`); nothing past the matcher knows which denomination paid.
+
 ### 2026-07-28 — the KEY supersession (rectification pass, primary record)
 
 Executed in one sitting, steward-confirmed in-turn, every write gated on a mirror read-back. The first wKEY's frozen memo carried ORG's internal decision-log shorthand; memos are immutable, so the correction is a successor issue (full rationale in LIMITATIONS.md).

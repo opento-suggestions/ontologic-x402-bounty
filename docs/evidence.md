@@ -73,3 +73,7 @@ Running collection of on-chain evidence (bounty checklist §10: real testnet tra
 | 2026-07-28 | burnCollected(1) — Lane B fee sink executed (D-3) | `0.0.9815453` | https://hashscan.io/testnet/transaction/0.0.8641261-1785275732-744095850 |
 | 2026-07-29 | associate treasury 0.0.8641261 with Circle testnet USDC (opens the USDC settlement leg) | `0.0.8641261` | https://hashscan.io/testnet/account/0.0.8641261 |
 | 2026-07-29 | associate test payer 0.0.9646033 with Circle testnet USDC (opens the USDC settlement leg) | `0.0.9646033` | https://hashscan.io/testnet/account/0.0.9646033 |
+| 2026-07-29 | redeem: settled x402 receipt 0.0.9646033-1785339755-663442473 → vend(0xb32bf450a8c61dbf0c205a55e10782ca2acdfc3f) | `0xb32bf450a8c61dbf0c205a55e10782ca2acdfc3f` | https://hashscan.io/testnet/transaction/0.0.8641261-1785339764-974645140 |
+| 2026-07-29 | burnCollected(1) — Lane B fee sink executed (D-3) | `0.0.9815453` | https://hashscan.io/testnet/transaction/0.0.8641261-1785339979-807863811 |
+| 2026-07-29 | redeem: settled x402 receipt 0.0.9646033-1785339990-596117867 → vend(0x87c9215afaff9562d02ced045a7b8f5cd640112c) | `0x87c9215afaff9562d02ced045a7b8f5cd640112c` | https://hashscan.io/testnet/transaction/0.0.8641261-1785340009-420022927 |
+| 2026-07-29 | burnCollected(1) — Lane B fee sink executed (D-3) | `0.0.9815453` | https://hashscan.io/testnet/transaction/0.0.8641261-1785340021-683291754 |

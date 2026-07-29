@@ -24,7 +24,7 @@ Each stamp is a **morpheme**: a sealed record of one reasoning step: the **R**ul
 
 **Lane A — native (about a penny).** You have a Hedera account. You sign one message carrying your claim; a fixed 0.01 HBAR fee (HIP-991) is charged *in the same transaction* that records it. Payment and testimony are one atomic consensus event — there is no separate payment leg to fail, refund, or dispute. The fee rail *is* the checkout, a collapse specific to Hedera's native custom-fee topics.
 
-**Lane B — premium (about fifty cents, the full x402 story).** Your *agent* has no Hedera account and never has to be trusted with one. The agent generates its own keypair off-chain; any funded account (yours, a sponsor's, the human principal behind the agent) fetches the service's live HTTP 402 challenge and settles exactly the terms it publishes (currently the exact scheme in testnet HBAR at the published peg). The vending machine then delivers the agent's on-chain existence: a funded account created from the *agent's* key, plus 1 KEY token — the fee for one stamp. The newborn signs its own testimony and the spent KEY is burned. The payer never holds the agent's key; the agent never touches the payer's. Every premium customer exits self-sovereign. The price is itemized in the open (`packages/ops/src/peg.ts`): the funding delivered, at cost, plus a visible margin. (Settlement today is Hedera-native; the receipt-and-redemption model is chain-agnostic by design — cross-chain USDC reception is the roadmap. See [LIMITATIONS.md](LIMITATIONS.md).)
+**Lane B — premium (about fifty cents, the full x402 story).** Your *agent* has no Hedera account and never has to be trusted with one. The agent generates its own keypair off-chain; any funded account (yours, a sponsor's, the human principal behind the agent) fetches the service's live HTTP 402 challenge and settles exactly the terms it publishes — the exact scheme, **in USDC or in testnet HBAR at the published peg; both entries are published in the same challenge**. The vending machine then delivers the agent's on-chain existence: a funded account created from the *agent's* key, plus 1 KEY token — the fee for one stamp. The newborn signs its own testimony and the spent KEY is burned. The payer never holds the agent's key; the agent never touches the payer's. Every premium customer exits self-sovereign. The price is itemized in the open (`packages/ops/src/peg.ts`): the funding delivered, at cost, plus a visible margin. (Settlement today is Hedera-native — HBAR or Hedera-USDC; the receipt-and-redemption model is chain-agnostic by design, so USDC received on the standard's other rails is the roadmap. See [LIMITATIONS.md](LIMITATIONS.md).)
 
 Reads are always free and public. The [Proof Wall](https://ontologic.dev/wall) and bundled verifier are conveniences but mirror-node REST is the canonical read path.
 
@@ -45,11 +45,14 @@ That builds a WHITE trace claim against the live taxonomy (a closed claim space 
 
 ## The full x402 story (Lane B, from a customer clone)
 
-The same payer-only `.env` drives the premium lane end to end. Your clone never needs an ORG identity: `witness_requirements` fetches the live challenge from [ontologic.dev/x402/vend](https://www.ontologic.dev/x402/vend) and `witness_pay` consumes *its* terms — payTo, amount — falling back to the shipped `config.witness.json` when offline.
+The same payer-only `.env` drives the premium lane end to end. Your clone never needs an ORG identity: `witness_requirements` fetches the live challenge from [ontologic.dev/x402/vend](https://www.ontologic.dev/x402/vend) and `witness_pay` consumes *its* terms — payTo, amount, asset — falling back to the shipped `config.witness.json` when offline.
 
 ```sh
-npm run smoke:mcp     # auto-detects customer posture (OPERATOR_ID left as placeholder)
+npm run smoke:mcp             # auto-detects customer posture (OPERATOR_ID left as placeholder)
+npm run smoke:mcp -- --usdc   # the same story, settling the challenge's USDC entry instead of HBAR
 ```
+
+For the USDC leg your payer needs Circle testnet USDC — free at [faucet.circle.com](https://faucet.circle.com) (select "Hedera Testnet"; holding it implies the token association the transfer needs).
 
 It stamps Lane A, generates a newborn testimony key, settles the x402 payment with the redemption memo, waits for ORG's watcher (`npm run redeem:watch`, operator side) to honor the receipt with genesis + 1 KEY, then the newborn signs its own Lane B stamp and re-verifies it keyless. The settled transfer is your receipt; delivery is a redeemable right against it with no funds stranded (see [LIMITATIONS.md](LIMITATIONS.md)).
 
@@ -63,7 +66,7 @@ The bounty names three criteria. Where each is proven, and one positioning note:
 
 **A working end-to-end flow.** `npm run smoke:mcp` runs the whole story from a customer clone: 402 challenge → settlement → redemption → account genesis → the newborn's own stamp → keyless re-verification. The flow has also been completed by an external customer with no relationship to this repo: payer `0.0.7974723`, transaction [`0.0.7974723-1785275543-194304289`](https://hashscan.io/testnet/transaction/0.0.7974723-1785275543-194304289) settled against the live challenge.
 
-**Real on-chain payments through x402.** The gateway at [ontologic.dev/x402/vend](https://www.ontologic.dev/x402/vend) answers with a literal HTTP 402, and the client consumes *that challenge's* terms. Every settlement, redemption, and burn is linked in [docs/evidence.md](docs/evidence.md).
+**Real on-chain payments through x402.** The gateway at [ontologic.dev/x402/vend](https://www.ontologic.dev/x402/vend) answers with a literal HTTP 402, and the client consumes *that challenge's* terms — and settles **both published legs of its own challenge**, HBAR and USDC, each proven live end to end from a customer clone. Every settlement, redemption, and burn is linked in [docs/evidence.md](docs/evidence.md).
 
 **How well the build uses Hedera rails.** Five services in load-bearing roles: HCS topics carry the testimony; HIP-991 custom fees make Lane A's payment and product one atomic transaction; HTS mints and burns the KEY through a contract-held supply key; the Smart Contract Service holds custody and delivery for the vend; and mirror-node REST is the trust anchor — the whole verification story, including the operator's own authority chain, is checkable by a keyless stranger from public reads alone.
 

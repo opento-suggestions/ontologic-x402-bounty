@@ -27,7 +27,7 @@ Prices are manually pegged for the MVP: testnet HBAR notionally at $0.10. Testne
 
 ## The vending price was upside-down, and was repriced (D-2 amended 2026-07-27)
 
-The original $0.01 vending price predated the decision to fund newborns with 3 HBAR ($0.30 notional at the peg): every Lane B sale delivered roughly thirty times its receipt. Harmless on faucet-fed testnet, dishonest as a pricing story. The steward amended D-2 to **$0.50 USDC**, itemized in `scripts/peg.ts` with the same at-cost + visible-margin structure as Lane A: funding $0.30 + delivery network allowance $0.15 + margin $0.05. Receipts settled before the reprice are honored at their own era's price (`priceEras`) — a reprice must never orphan history or deny a repeat customer their delivery count.
+The original $0.01 vending price predated the decision to fund newborns with 3 HBAR ($0.30 notional at the peg): every Lane B sale delivered roughly thirty times its receipt. Harmless on faucet-fed testnet, dishonest as a pricing story. The steward amended D-2 to **$0.50 USDC**, itemized in the peg (`packages/ops/src/peg.ts`) with the same at-cost + visible-margin structure as Lane A: funding $0.30 + delivery network allowance $0.15 + margin $0.05. Receipts settled before the reprice are honored at their own era's price (`priceEras`) — a reprice must never orphan history or deny a repeat customer their delivery count. The USDC leg settles live as of 2026-07-29; every USDC receipt is current-era by construction, because the treasury's token association postdates the reprice — no USDC payment could physically land before it.
 
 ## Refund minus network fee
 
