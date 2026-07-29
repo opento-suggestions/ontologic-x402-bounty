@@ -15,8 +15,10 @@
  */
 
 import { AccountId, Hbar, TokenId, TransactionId, TransferTransaction } from "@hashgraph/sdk";
+import { getNetworkConfig } from "../../core/src/config.js";
 import type { PayerContext } from "./contexts.js";
 import { hashscanTx } from "./plumbing.js";
+import { PEG } from "./peg.js";
 
 export interface PaymentTerms {
   scheme: string;
@@ -24,6 +26,50 @@ export interface PaymentTerms {
   amount: string; // smallest unit of `asset` (tinybar for HBAR, 6-decimal units for USDC), as a string
   asset: string; // "0.0.0" = HBAR, otherwise an HTS token id
   payTo: string;
+}
+
+function formatUnits(units: number, asset: string): string {
+  return asset === PEG.vending.usdcTokenId ? `${units / 1e6} USDC` : `${units} units of ${asset}`;
+}
+
+/**
+ * Pre-flight for the token leg — the last member of the placeholder-validation
+ * family: a missing association or a short balance dies HERE with a sentence,
+ * not mid-settlement as a raw SDK status. A mirror hiccup does not block a
+ * valid payment; the network stays the final judge.
+ */
+export async function assertTokenBalance(
+  mirrorNodeUrl: string,
+  payerId: string,
+  terms: PaymentTerms,
+): Promise<void> {
+  let resp: Response;
+  try {
+    resp = await fetch(`${mirrorNodeUrl}/accounts/${payerId}/tokens?token.id=${terms.asset}`);
+  } catch {
+    return;
+  }
+  if (!resp.ok) return;
+  const data = (await resp.json()) as { tokens?: { balance: number }[] };
+  const faucet =
+    terms.asset === PEG.vending.usdcTokenId
+      ? ' Drip free Circle testnet USDC at faucet.circle.com — select "Hedera Testnet".'
+      : "";
+  const name = terms.asset === PEG.vending.usdcTokenId ? "USDC" : `token ${terms.asset}`;
+  const held = data.tokens?.[0];
+  if (!held) {
+    throw new Error(
+      `Payer ${payerId} holds no ${name} and is not associated with it.` +
+        `${faucet} Holding the token implies the association the transfer needs.`,
+    );
+  }
+  const amount = Number(terms.amount);
+  if (held.balance < amount) {
+    throw new Error(
+      `Payer ${payerId} holds ${formatUnits(held.balance, terms.asset)} but the published terms require ` +
+        `${formatUnits(amount, terms.asset)}.${faucet}`,
+    );
+  }
 }
 
 /** The conformant transfer, either leg: an HBAR pair, or the same pair in the
@@ -50,6 +96,9 @@ export async function settleVendPayment(
   ctx: PayerContext,
   opts: { terms: PaymentTerms; memo: string; facilitatorUrl?: string | null },
 ): Promise<SettlementOutcome> {
+  if (opts.terms.asset !== "0.0.0") {
+    await assertTokenBalance(getNetworkConfig().mirrorNodeUrl, ctx.payerId, opts.terms);
+  }
   const requirements = { ...opts.terms, memo: opts.memo };
 
   if (opts.facilitatorUrl) {
