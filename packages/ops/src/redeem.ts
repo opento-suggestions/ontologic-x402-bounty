@@ -28,12 +28,38 @@ import { PEG, vendPriceTinybarAt } from "./peg.js";
 
 export const VEND_MEMO_PREFIX = "x402:witness-required:vend:";
 
-interface MirrorTx {
+export interface MirrorTx {
   consensus_timestamp: string;
   memo_base64?: string;
   result: string;
   transfers?: { account: string; amount: number }[];
+  token_transfers?: { token_id: string; account: string; amount: number }[];
   transaction_id: string;
+}
+
+/**
+ * A settled vend receipt: the vend memo plus the published price credited to
+ * the treasury in EITHER leg. HBAR is judged at the price in force at the
+ * receipt's OWN consensus instant (peg priceEras) — a reprice must not
+ * orphan history, or the receipts-vs-deliveries netting would misread every
+ * old receipt. USDC has a single era: the treasury's association
+ * (2026-07-29) postdates the only reprice, so no USDC receipt can predate
+ * the current price — if USDC is ever repriced, eras get added here under
+ * the same never-orphan-history rule.
+ */
+export function vendReceiptFrom(tx: MirrorTx, treasury: string): { alias: string; txId: string } | null {
+  if (tx.result !== "SUCCESS" || !tx.memo_base64) return null;
+  const memo = Buffer.from(tx.memo_base64, "base64").toString("utf8");
+  if (!memo.startsWith(VEND_MEMO_PREFIX)) return null;
+  const hbarCredited = tx.transfers?.some(
+    (t) => t.account === treasury && t.amount >= vendPriceTinybarAt(tx.consensus_timestamp),
+  );
+  const usdcCredited = tx.token_transfers?.some(
+    (t) =>
+      t.token_id === PEG.vending.usdcTokenId && t.account === treasury && t.amount >= PEG.vending.priceUsdcSmallest,
+  );
+  if (!hbarCredited && !usdcCredited) return null;
+  return { alias: memo.slice(VEND_MEMO_PREFIX.length).toLowerCase(), txId: tx.transaction_id };
 }
 
 async function findSettledVends(mirrorUrl: string, treasury: string): Promise<{ alias: string; txId: string }[]> {
@@ -46,16 +72,8 @@ async function findSettledVends(mirrorUrl: string, treasury: string): Promise<{ 
     if (!resp.ok) throw new Error(`Mirror ${resp.status}`);
     const data = (await resp.json()) as { transactions?: MirrorTx[]; links?: { next?: string | null } };
     for (const tx of data.transactions ?? []) {
-      if (tx.result !== "SUCCESS" || !tx.memo_base64) continue;
-      const memo = Buffer.from(tx.memo_base64, "base64").toString("utf8");
-      if (!memo.startsWith(VEND_MEMO_PREFIX)) continue;
-      // A receipt is judged at the price in force at ITS OWN consensus
-      // instant (peg priceEras) — a reprice must not orphan history, or
-      // the receipts-vs-deliveries netting would misread every old receipt.
-      const amount = vendPriceTinybarAt(tx.consensus_timestamp);
-      const credited = tx.transfers?.some((t) => t.account === treasury && t.amount >= amount);
-      if (!credited) continue;
-      found.push({ alias: memo.slice(VEND_MEMO_PREFIX.length).toLowerCase(), txId: tx.transaction_id });
+      const receipt = vendReceiptFrom(tx, treasury);
+      if (receipt) found.push(receipt);
     }
     url = data.links?.next ? `${mirrorUrl.replace(/\/api\/v1$/, "")}${data.links.next}` : null;
   }

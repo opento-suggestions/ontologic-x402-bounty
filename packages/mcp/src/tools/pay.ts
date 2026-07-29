@@ -16,12 +16,18 @@
 
 import { openPayerContext } from "../../../ops/src/customer.js";
 import { settleVendPayment } from "../../../ops/src/pay.js";
-import { resolvePaymentTerms, type ResolvedTerms } from "../payment-terms.js";
+import { getWitnessConfig } from "../../../core/src/config.js";
+import { resolvePaymentTerms, termsWantedFor, type PaymentLeg, type ResolvedTerms } from "../payment-terms.js";
 import { getPayerConfig } from "../env.js";
 import { latestNewborn, latestChallenge, recordChallenge } from "../state/keystore.js";
 import { ok, fail, type ToolResult } from "../channels.js";
 
-export async function handlePay(aliasArg?: string): Promise<ToolResult> {
+export async function handlePay(aliasArg?: string, legArg?: string): Promise<ToolResult> {
+  const leg = (legArg ?? "hbar") as PaymentLeg;
+  if (leg !== "hbar" && leg !== "usdc") {
+    return fail(`Unknown leg: ${legArg}. Legs are "hbar" (default) and "usdc" (the published USDC entry).`);
+  }
+
   const alias = aliasArg ?? latestNewborn()?.alias;
   if (!alias) {
     return fail("No testimony alias. Run witness_genesis first (Lane B pays FOR a genesis).");
@@ -29,7 +35,10 @@ export async function handlePay(aliasArg?: string): Promise<ToolResult> {
 
   let resolved: ResolvedTerms;
   try {
-    resolved = await resolvePaymentTerms({ stored: latestChallenge() });
+    resolved = await resolvePaymentTerms({
+      stored: latestChallenge(),
+      want: termsWantedFor(leg, getWitnessConfig().usdcTokenId ?? undefined),
+    });
   } catch (err) {
     return fail((err as Error).message);
   }

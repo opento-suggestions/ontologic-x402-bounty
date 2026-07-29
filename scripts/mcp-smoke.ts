@@ -14,6 +14,9 @@
  *     watcher (npm run redeem:watch) runs separately, and we poll
  *     witness_redeem_status until delivery arrives. This is the posture that
  *     exposed the payTo bug: the fix is only proven from here.
+ *
+ * --usdc settles the pay leg against the published USDC accepts entry
+ * instead of the HBAR default (the payer must hold Circle testnet USDC).
  */
 
 import { execFileSync } from "node:child_process";
@@ -66,7 +69,10 @@ async function awaitExternalRedeem(): Promise<Record<string, unknown>> {
 
 async function main() {
   const customer = customerPosture();
-  console.log(customer ? "posture: customer (payer creds only)" : "posture: operator (single process)");
+  const leg = process.argv.includes("--usdc") ? "usdc" : undefined; // default: HBAR
+  console.log(
+    `${customer ? "posture: customer (payer creds only)" : "posture: operator (single process)"} · pay leg: ${leg ?? "hbar"}`,
+  );
 
   show("witness_requirements", await handleRequirements());
   show("witness_assert_claim(light)", await handleAssertClaim("light"));
@@ -78,7 +84,7 @@ async function main() {
   );
 
   const genesis = show("witness_genesis", await handleGenesis());
-  show("witness_pay", await handlePay());
+  show("witness_pay", await handlePay(undefined, leg));
 
   let status: Record<string, unknown>;
   if (customer) {

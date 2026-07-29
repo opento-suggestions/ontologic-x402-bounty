@@ -39,7 +39,18 @@ export interface StoredChallenge {
 
 export const DEFAULT_MAX_TIMEOUT_SECONDS = 180;
 
-/** The HBAR leg of the exact scheme — what witness_pay settles today. */
+/** The two published legs a payer can settle. HBAR is the default; USDC is
+ * the dollar-honest opt-in (Circle testnet USDC, six decimals). */
+export type PaymentLeg = "hbar" | "usdc";
+
+export function termsWantedFor(
+  leg: PaymentLeg,
+  usdcAsset = "0.0.429274",
+): Pick<AcceptsEntry, "scheme" | "network" | "asset"> {
+  return { scheme: "exact", network: "hedera:testnet", asset: leg === "hbar" ? "0.0.0" : usdcAsset };
+}
+
+/** The HBAR leg of the exact scheme — the default witness_pay settles. */
 export const HBAR_TERMS_WANTED = {
   scheme: "exact",
   network: "hedera:testnet",
@@ -156,6 +167,9 @@ export async function resolvePaymentTerms(opts: {
   const configAccepts = opts.configAccepts !== undefined ? opts.configAccepts : readConfigAccepts();
   const want = opts.want ?? HBAR_TERMS_WANTED;
 
+  const seenAssets = new Set<string>();
+  const noteAssets = (accepts: AcceptsEntry[]) => accepts.forEach((a) => seenAssets.add(a.asset));
+
   const useIfValid = (entry: AcceptsEntry | null, source: string, challenge?: StoredChallenge): ResolvedTerms | string => {
     if (!entry) return "no matching accepts entry";
     const problem = validTerms(entry);
@@ -166,6 +180,7 @@ export async function resolvePaymentTerms(opts: {
   // (a) the challenge witness_requirements fetched, if still within its window.
   let challengeNote: string;
   if (opts.stored) {
+    noteAssets(opts.stored.accepts);
     const entry = matchAccepts(opts.stored.accepts, want);
     const windowMs = (entry?.maxTimeoutSeconds ?? DEFAULT_MAX_TIMEOUT_SECONDS) * 1000;
     const ageMs = now - Date.parse(opts.stored.fetchedAt);
@@ -184,6 +199,7 @@ export async function resolvePaymentTerms(opts: {
   if (gatewayUrl) {
     try {
       const fresh = await fetchChallenge(gatewayUrl);
+      noteAssets(fresh.accepts);
       const result = useIfValid(matchAccepts(fresh.accepts, want), `402 challenge refetched from ${fresh.source}`, fresh);
       if (typeof result !== "string") return result;
       challengeNote += `; refetch: ${result}`;
@@ -197,6 +213,7 @@ export async function resolvePaymentTerms(opts: {
   // (b) the deploy-time artifact, for offline / no-gateway operation.
   let configNote: string;
   if (configAccepts) {
+    noteAssets(configAccepts);
     const result = useIfValid(matchAccepts(configAccepts, want), "config.witness.json (deploy-time artifact)");
     if (typeof result !== "string") return result;
     configNote = result;
@@ -205,8 +222,10 @@ export async function resolvePaymentTerms(opts: {
   }
 
   // (c) neither path resolved — say exactly what was tried and how to fix it.
+  const legs = [...seenAssets].map((a) => (a === "0.0.0" ? "0.0.0 (HBAR)" : a)).join(", ") || "none seen";
   throw new Error(
     `Cannot resolve payment terms (payTo/amount) for ${want.scheme}/${want.network}/${want.asset}. ` +
+      `Published legs seen: ${legs}. ` +
       `Tried: (1) the 402 challenge — ${challengeNote}. (2) config.witness.json — ${configNote}. ` +
       `Fix: run witness_requirements with WITNESS_REQUIREMENTS_URL set, or restore config.witness.json ` +
       `(the operator regenerates it with npm run peg).`,

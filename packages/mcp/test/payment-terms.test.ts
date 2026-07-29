@@ -12,6 +12,7 @@ import {
   matchAccepts,
   readConfigAccepts,
   resolvePaymentTerms,
+  termsWantedFor,
   type AcceptsEntry,
   type StoredChallenge,
 } from "../src/payment-terms.js";
@@ -131,6 +132,65 @@ describe("resolvePaymentTerms — ratified order", () => {
   });
 });
 
+describe("leg selection", () => {
+  const USDC = "0.0.429274";
+  const bothLegs = [
+    entry({ asset: USDC, amount: "500000", payTo: "0.0.4242" }),
+    entry(), // HBAR
+  ];
+
+  it("termsWantedFor names the two published legs", () => {
+    expect(termsWantedFor("hbar")).toEqual({ scheme: "exact", network: "hedera:testnet", asset: "0.0.0" });
+    expect(termsWantedFor("usdc")).toEqual({ scheme: "exact", network: "hedera:testnet", asset: USDC });
+    expect(termsWantedFor("usdc", "0.0.99").asset).toBe("0.0.99");
+  });
+
+  it("the usdc filter selects the USDC entry from a two-leg challenge", async () => {
+    const resolved = await resolvePaymentTerms({
+      stored: { ...challenge(10), accepts: bothLegs },
+      now: NOW,
+      gatewayUrl: null,
+      configAccepts: null,
+      want: termsWantedFor("usdc"),
+    });
+    expect(resolved.terms.asset).toBe(USDC);
+    expect(resolved.terms.amount).toBe("500000");
+  });
+
+  it("the default still selects HBAR from the same challenge — non-regression", async () => {
+    const resolved = await resolvePaymentTerms({
+      stored: { ...challenge(10), accepts: bothLegs },
+      now: NOW,
+      gatewayUrl: null,
+      configAccepts: null,
+    });
+    expect(resolved.terms.asset).toBe("0.0.0");
+  });
+
+  it("a no-matching-leg failure names the legs actually published", async () => {
+    const attempt = resolvePaymentTerms({
+      stored: challenge(10), // HBAR-only challenge
+      now: NOW,
+      gatewayUrl: null,
+      configAccepts: null,
+      want: termsWantedFor("usdc"),
+    });
+    await expect(attempt).rejects.toThrow(/Published legs seen: 0\.0\.0 \(HBAR\)/);
+  });
+
+  it("the usdc filter falls back to config.witness.json like any other leg", async () => {
+    const resolved = await resolvePaymentTerms({
+      stored: null,
+      now: NOW,
+      gatewayUrl: null,
+      configAccepts: bothLegs,
+      want: termsWantedFor("usdc"),
+    });
+    expect(resolved.terms.asset).toBe(USDC);
+    expect(resolved.source).toContain("config.witness.json");
+  });
+});
+
 describe("the shipped config.witness.json", () => {
   it("carries real entity ids in every accepts entry — a customer can pay from it offline", () => {
     const repoConfig = path.resolve(
@@ -144,6 +204,7 @@ describe("the shipped config.witness.json", () => {
       expect(Number(a.amount)).toBeGreaterThan(0);
     }
     expect(matchAccepts(accepts!, { scheme: "exact", network: "hedera:testnet", asset: "0.0.0" })).not.toBeNull();
+    expect(matchAccepts(accepts!, termsWantedFor("usdc"))).not.toBeNull();
   });
 });
 

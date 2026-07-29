@@ -1,10 +1,12 @@
 /**
  * pay.ts — settle the x402 payment leg (Lane B), per the Hedera exact scheme
  * (verify-log V-1): a plain native TransferTransaction from the payer's
- * funding account to the published payTo. The terms arrive as DATA — resolved
- * upstream from the 402 challenge or config.witness.json — and the signature
- * accepts only a PayerContext, so no operator identity can answer this
- * payer-path question (the Lane B payTo bug, closed at the type level).
+ * funding account to the published payTo — HBAR or the published token
+ * (Circle testnet USDC), whichever accepts entry the resolved terms name.
+ * The terms arrive as DATA — resolved upstream from the 402 challenge or
+ * config.witness.json — and the signature accepts only a PayerContext, so no
+ * operator identity can answer this payer-path question (the Lane B payTo
+ * bug, closed at the type level).
  *
  * Two settlement modes:
  *   facilitator — the conformant wire flow: partially signed (fee payer
@@ -12,16 +14,30 @@
  *   direct — the payer self-sponsors the same conformant transfer.
  */
 
-import { AccountId, Hbar, TransactionId, TransferTransaction } from "@hashgraph/sdk";
+import { AccountId, Hbar, TokenId, TransactionId, TransferTransaction } from "@hashgraph/sdk";
 import type { PayerContext } from "./contexts.js";
 import { hashscanTx } from "./plumbing.js";
 
 export interface PaymentTerms {
   scheme: string;
   network: string;
-  amount: string; // tinybar, as a string
-  asset: string;
+  amount: string; // smallest unit of `asset` (tinybar for HBAR, 6-decimal units for USDC), as a string
+  asset: string; // "0.0.0" = HBAR, otherwise an HTS token id
   payTo: string;
+}
+
+/** The conformant transfer, either leg: an HBAR pair, or the same pair in the
+ * published token — the amount comes verbatim from the matched accepts entry,
+ * never through the peg. */
+function addSettlementTransfer(tx: TransferTransaction, terms: PaymentTerms, payerId: string): TransferTransaction {
+  const amount = Number(terms.amount);
+  if (terms.asset === "0.0.0") {
+    return tx
+      .addHbarTransfer(payerId, Hbar.fromTinybars(-amount))
+      .addHbarTransfer(terms.payTo, Hbar.fromTinybars(amount));
+  }
+  const token = TokenId.fromString(terms.asset);
+  return tx.addTokenTransfer(token, payerId, -amount).addTokenTransfer(token, terms.payTo, amount);
 }
 
 export interface SettlementOutcome {
@@ -34,14 +50,11 @@ export async function settleVendPayment(
   ctx: PayerContext,
   opts: { terms: PaymentTerms; memo: string; facilitatorUrl?: string | null },
 ): Promise<SettlementOutcome> {
-  const amountTinybar = Number(opts.terms.amount);
   const requirements = { ...opts.terms, memo: opts.memo };
 
   if (opts.facilitatorUrl) {
     // Conformant wire flow: partially signed, fee payer open, facilitator settles.
-    const frozen = new TransferTransaction()
-      .addHbarTransfer(ctx.payerId, Hbar.fromTinybars(-amountTinybar))
-      .addHbarTransfer(opts.terms.payTo, Hbar.fromTinybars(amountTinybar))
+    const frozen = addSettlementTransfer(new TransferTransaction(), opts.terms, ctx.payerId)
       .setTransactionMemo(opts.memo)
       .setTransactionId(TransactionId.generate(ctx.payerId))
       .setNodeAccountIds([new AccountId(3)])
@@ -61,9 +74,7 @@ export async function settleVendPayment(
   }
 
   // Direct mode: self-sponsored settlement of the same conformant transfer.
-  const tx = await new TransferTransaction()
-    .addHbarTransfer(ctx.payerId, Hbar.fromTinybars(-amountTinybar))
-    .addHbarTransfer(opts.terms.payTo, Hbar.fromTinybars(amountTinybar))
+  const tx = await addSettlementTransfer(new TransferTransaction(), opts.terms, ctx.payerId)
     .setTransactionMemo(opts.memo)
     .execute(ctx.client);
   const record = await tx.getRecord(ctx.client);

@@ -85,12 +85,18 @@ server.tool(
 server.tool(
   "witness_pay",
   "Settle the x402 payment leg for Lane B: a conformant exact-scheme TransferTransaction from your funding " +
-    "account to the published payTo (via facilitator if configured, else self-sponsored). The settled transfer " +
-    "IS the payment receipt; delivery (account genesis + 1 wKEY) is a redeemable right against it.",
+    "account to the published payTo (via facilitator if configured, else self-sponsored). Settles the HBAR " +
+    'accepts entry by default; pass leg="usdc" to pay the published USDC entry ($0.50, Circle testnet USDC) ' +
+    "instead. The settled transfer IS the payment receipt; delivery (account genesis + 1 wKEY) is a " +
+    "redeemable right against it.",
   {
     alias: z.string().optional().describe("Testimony alias to vend for (defaults to the latest witness_genesis)"),
+    leg: z
+      .enum(["hbar", "usdc"])
+      .optional()
+      .describe('Which published accepts entry to settle: "hbar" (default) or "usdc"'),
   },
-  async ({ alias }) => handlePay(alias),
+  async ({ alias, leg }) => handlePay(alias, leg),
 );
 
 server.tool(
